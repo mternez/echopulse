@@ -1,6 +1,6 @@
 # EchoPulse - Distributed Discord Clone
 
-**EchoPulse** is a distributed clone of Discord designed as a backend technical demonstrator.
+**EchoPulse** is a distributed minimalist clone of Discord designed as a backend technical demonstrator.
 
 ## Disclaimer
 
