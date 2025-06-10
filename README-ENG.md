@@ -4,7 +4,7 @@
 
 ## Disclaimer
 
-This project **is not intended for production use**. Its sole purpose is to:
+The sole purpose of this project is to:
 
 - practice **hexagonal architecture** and clear separation of concerns,
 - work with **Kafka**, **Redis**, **WebSocket STOMP**, and **OAuth2** in a distributed context.
