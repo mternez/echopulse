@@ -4,7 +4,7 @@
 
 ## Avertissement
 
-Ce projet **n’a pas vocation à être utilisé en production**. Il sert exclusivement à :
+Ce projet sert exclusivement à :
 
 - pratiquer la **conception hexagonale** et la séparation claire des responsabilités,
 - manipuler **Kafka**, **Redis**, **WebSocket STOMP** et **OAuth2** dans un contexte distribué,
