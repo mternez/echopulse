@@ -1,0 +1,7 @@
+<div class="h-full">
+  @for(mess of messages(); track message) {
+    <p>{{ mess.username }} [{{ mess.timestamp | date: 'dd/MM/YYYY - hh:mm:ss' }}] : {{ mess.content }}</p>
+  }
+</div>
+<input pInputText [(ngModel)]="message" type="text"  class="text-black" (keydown)="onKeyDownSend($event)"/>
+<button (click)="onSend()">Send</button>

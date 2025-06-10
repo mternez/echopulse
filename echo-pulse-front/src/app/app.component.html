@@ -1,0 +1,16 @@
+<p-splitter [panelSizes]="[10, 85]" [minSizes]="[10,20]" styleClass="flex h-full text-white overflow-hidden">
+  <ng-template pTemplate class="overflow-hidden">
+    <app-user-sidebard class="self-stretch min-w-full overflow-hidden bg-gray-600 border-l-red-500 border-solid border-spacing-4"/>
+  </ng-template>
+  <ng-template pTemplate>
+    @if(selectedServer()) {
+      <app-server-container class="flex grow self-stretch" />
+    } @else {
+      <p class="w-full text-center bg-gray-600 h-full">Choose or create a server</p>
+    }
+  </ng-template>
+</p-splitter>
+
+<router-outlet />
+
+<p-toast/>

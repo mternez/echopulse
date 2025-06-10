@@ -1,0 +1,795 @@
+package fr.mternez.echopulse.chat.configuration;
+
+import fr.mternez.echopulse.chat.kafka.adapter.PostEventPublisherAdapter;
+import fr.mternez.echopulse.chat.websocket.adapter.MessagePublisherAdapter;
+import fr.mternez.echopulse.core.chat.application.ChannelEventHandlerImpl;
+import fr.mternez.echopulse.core.chat.application.PostEventHandlerImpl;
+import fr.mternez.echopulse.core.chat.application.UserEventHandlerImpl;
+import fr.mternez.echopulse.core.chat.port.in.ChannelEventHandler;
+import fr.mternez.echopulse.core.chat.port.in.PostEventHandler;
+import fr.mternez.echopulse.core.chat.port.in.UserEventHandler;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+public class InboundPortsRegistrationConfig {
+
+    private final PostEventPublisherAdapter postEventPublisherAdapter;
+    private final MessagePublisherAdapter postMessagePublisherAdapter;
+    private final MessagePublisherAdapter messagePublisherAdapter;
+
+    InboundPortsRegistrationConfig(
+            final PostEventPublisherAdapter postEventPublisherAdapter,
+            final MessagePublisherAdapter postMessagePublisherAdapter,
+            final MessagePublisherAdapter messagePublisherAdapter
+    ) {
+        this.postEventPublisherAdapter = postEventPublisherAdapter;
+        this.postMessagePublisherAdapter = postMessagePublisherAdapter;
+        this.messagePublisherAdapter = messagePublisherAdapter;
+    }
+
+    @Bean
+    public PostEventHandler getPostHandlerBean() {
+        return new PostEventHandlerImpl(this.postMessagePublisherAdapter, this.postEventPublisherAdapter);
+    }
+
+    @Bean
+    public ChannelEventHandler getChannelEventHandlerBean() {
+        return new ChannelEventHandlerImpl(this.messagePublisherAdapter);
+    }
+
+    @Bean
+    public UserEventHandler getUserEventHandlerBean() {
+        return new UserEventHandlerImpl(this.messagePublisherAdapter);
+    }
+}
+package fr.mternez.echopulse.chat.configuration;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.CsrfConfigurer;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.List;
+
+@Configuration
+@EnableWebSecurity
+public class WebSecurityConfig {
+
+    @Bean
+    SecurityFilterChain getSecurityFilterChain(final HttpSecurity http,
+                                               final JwtAuthenticationConverter jwtAuthenticationConverter,
+                                               final JwtDecoder jwtDecoder) throws Exception {
+
+        http
+                .cors(c -> c.configurationSource(corsConfigurationSource()))
+                .csrf(CsrfConfigurer::disable)
+                .authorizeHttpRequests((authorize) ->
+                        authorize.requestMatchers("/ws").permitAll()
+                                .anyRequest().authenticated()
+                )
+                .oauth2ResourceServer((oauth2) ->
+                        oauth2.jwt(jwtConfigurer -> {
+                            jwtConfigurer.decoder(jwtDecoder);
+                            jwtConfigurer.jwtAuthenticationConverter(jwtAuthenticationConverter);
+                        })
+                );
+        return http.build();
+    }
+
+    @Bean
+    JwtAuthenticationConverter jwtDecoder() {
+        return new JwtAuthenticationConverter();
+    }
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOrigins(List.of("http://localhost:4200"));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE"));
+        configuration.setAllowedHeaders(List.of("*"));
+        configuration.setAllowCredentials(true);
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
+    }
+}
+package fr.mternez.echopulse.chat.data.config;
+
+import fr.mternez.echopulse.chat.data.model.Post;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
+import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.repository.configuration.EnableRedisRepositories;
+
+@Configuration
+@EnableRedisRepositories
+public class RedisConfig {
+
+    private final RedisProperties properties;
+
+    RedisConfig(final RedisProperties properties) {
+        this.properties = properties;
+    }
+
+    @Bean
+    JedisConnectionFactory jedisConnectionFactory() {
+        final RedisStandaloneConfiguration config = new RedisStandaloneConfiguration();
+        config.setDatabase(this.properties.getDatabase());
+        config.setHostName(this.properties.getHost());
+        config.setPort(this.properties.getPort());
+        config.setPassword(this.properties.getPassword());
+        return new JedisConnectionFactory(config);
+    }
+
+    @Bean
+    public RedisTemplate<String, Post> redisTemplate() {
+        RedisTemplate<String, Post> template = new RedisTemplate<>();
+        template.setConnectionFactory(jedisConnectionFactory());
+        return template;
+    }
+}
+package fr.mternez.echopulse.chat.data.config;
+
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+@ConfigurationProperties(prefix = "spring.data.redis")
+public class RedisProperties {
+
+    private int database;
+    private String host;
+    private int port;
+    private String password;
+
+    public int getDatabase() {
+        return database;
+    }
+
+    public void setDatabase(int database) {
+        this.database = database;
+    }
+
+    public String getHost() {
+        return host;
+    }
+
+    public void setHost(String host) {
+        this.host = host;
+    }
+
+    public int getPort() {
+        return port;
+    }
+
+    public void setPort(int port) {
+        this.port = port;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+}
+package fr.mternez.echopulse.chat.data.model;
+
+import org.springframework.data.annotation.Id;
+import org.springframework.data.redis.core.RedisHash;
+import org.springframework.data.redis.core.index.Indexed;
+
+import java.time.Instant;
+import java.util.UUID;
+
+@RedisHash("Post")
+public class Post {
+
+    @Id
+    private String id;
+    private String username;
+    @Indexed
+    private UUID channelId;
+    private String content;
+    private Instant timestamp;
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public UUID getChannelId() {
+        return channelId;
+    }
+
+    public void setChannelId(UUID channelId) {
+        this.channelId = channelId;
+    }
+
+    public String getContent() {
+        return content;
+    }
+
+    public void setContent(String content) {
+        this.content = content;
+    }
+
+    public Instant getTimestamp() {
+        return timestamp;
+    }
+
+    public void setTimestamp(Instant timestamp) {
+        this.timestamp = timestamp;
+    }
+}
+package fr.mternez.echopulse.chat.data.repository;
+
+import fr.mternez.echopulse.chat.data.model.Post;
+import org.springframework.data.repository.CrudRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.Set;
+import java.util.UUID;
+
+@Repository
+public interface PostRepository extends CrudRepository<Post, String>{
+    Set<Post> findAllByChannelId(UUID channelId);
+
+    void deleteAllByChannelId(UUID channelId);
+}
+package fr.mternez.echopulse.chat.kafka.adapter;
+
+import fr.mternez.echopulse.chat.kafka.config.KafkaTopic;
+import fr.mternez.echopulse.core.common.event.PostSent;
+import fr.mternez.echopulse.core.chat.port.out.PostEventPublisher;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.stereotype.Component;
+
+@Component
+public class PostEventPublisherAdapter implements PostEventPublisher {
+
+    private final KafkaTemplate<String, PostSent> postSentTemplate;
+
+    PostEventPublisherAdapter(
+            final KafkaTemplate<String, PostSent> postSentTemplate
+    ) {
+        this.postSentTemplate = postSentTemplate;
+    }
+
+    @Override
+    public void publish(final PostSent event) {
+        this.postSentTemplate.send(KafkaTopic.SEND_MESSAGE_ON_CHANNEL.getTopic(), event);
+    }
+}
+package fr.mternez.echopulse.chat.kafka.config;
+
+import org.apache.kafka.clients.admin.NewTopic;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.kafka.annotation.EnableKafka;
+import org.springframework.kafka.config.TopicBuilder;
+import org.springframework.kafka.support.converter.ByteArrayJsonMessageConverter;
+import org.springframework.kafka.support.converter.JsonMessageConverter;
+
+@Configuration
+@EnableKafka
+public class KafkaConfiguration {
+
+    @Bean
+    public NewTopic sendMessageOnChannelTopic() {
+        return TopicBuilder.name(KafkaTopic.SEND_MESSAGE_ON_CHANNEL.getTopic())
+                .build();
+    }
+
+    @Bean
+    public NewTopic createChannelTopic() {
+        return TopicBuilder.name(KafkaTopic.CREATE_CHANNEL.getTopic())
+                .build();
+    }
+
+    @Bean
+    public NewTopic deleteChannelTopic() {
+        return TopicBuilder.name(KafkaTopic.DELETE_CHANNEL.getTopic())
+                .build();
+    }
+
+    @Bean
+    public NewTopic userJoinServerTopic() {
+        return TopicBuilder.name(KafkaTopic.USER_JOIN_SERVER.getTopic())
+                .build();
+    }
+
+    @Bean
+    public NewTopic userLeaveServerTopic() {
+        return TopicBuilder.name(KafkaTopic.USER_LEAVE_SERVER.getTopic())
+                .build();
+    }
+
+    @Bean
+    public JsonMessageConverter jsonMessageConverter() {
+        return new ByteArrayJsonMessageConverter();
+    }
+}
+package fr.mternez.echopulse.chat.kafka.config;
+
+public enum KafkaTopic {
+
+    SEND_MESSAGE_ON_CHANNEL("channels.send-message"),
+    CREATE_CHANNEL("channels.create"),
+    DELETE_CHANNEL("channels.delete"),
+    USER_JOIN_SERVER("user.join-server"),
+    USER_LEAVE_SERVER("user.leave-server");
+
+    private final String topic;
+
+    KafkaTopic(final String topic) {
+        this.topic = topic;
+    }
+
+    public String getTopic() {
+        return this.topic;
+    }
+}
+package fr.mternez.echopulse.chat.kafka.consumer;
+
+import fr.mternez.echopulse.chat.data.model.Post;
+import fr.mternez.echopulse.chat.data.repository.PostRepository;
+import fr.mternez.echopulse.core.chat.port.in.ChannelEventHandler;
+import fr.mternez.echopulse.core.chat.port.in.PostEventHandler;
+import fr.mternez.echopulse.core.chat.port.in.UserEventHandler;
+import fr.mternez.echopulse.core.common.event.*;
+import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.stereotype.Component;
+
+@Component
+public class EventConsumer {
+
+    private final PostEventHandler postEventHandler;
+    private final ChannelEventHandler channelEventHandler;
+    private final UserEventHandler userEventHandler;
+    private final PostRepository postRepository;
+
+    EventConsumer(
+            final PostEventHandler postEventHandler,
+            final ChannelEventHandler channelEventHandler,
+            final UserEventHandler userEventHandler,
+            final PostRepository postRepository
+    ) {
+        this.postEventHandler = postEventHandler;
+        this.channelEventHandler = channelEventHandler;
+        this.userEventHandler = userEventHandler;
+        this.postRepository = postRepository;
+    }
+
+    @KafkaListener(topics = "channels.send-message", groupId = "chat-consumer-group")
+    public void processMessage(final PostSent event) {
+        final Post post = new Post();
+        post.setUsername(event.postMessage().username());
+        post.setChannelId(event.postMessage().channelId().getValue());
+        post.setContent(event.postMessage().content());
+        post.setTimestamp(event.postMessage().timestamp());
+        this.postRepository.save(post);
+        this.postEventHandler.handleEvent(event);
+    }
+
+    @KafkaListener(topics = "channels.create", groupId = "chat-consumer-group")
+    public void processMessage(final ChannelCreated event) {
+        this.channelEventHandler.handleEvent(event);
+    }
+
+    @KafkaListener(topics = "channels.delete", groupId = "chat-consumer-group")
+    public void processMessage(final ChannelDeleted event) {
+        this.postRepository.deleteAllByChannelId(event.id().getValue());
+        this.channelEventHandler.handleEvent(event);
+    }
+
+    @KafkaListener(topics = "user.join-server", groupId = "chat-consumer-group")
+    public void processMessage(final UserJoinedServer event) {
+        this.userEventHandler.handleEvent(event);
+    }
+
+    @KafkaListener(topics = "user.leave-server", groupId = "chat-consumer-group")
+    public void processMessage(final UserLeftServer event) {
+        this.userEventHandler.handleEvent(event);
+    }
+}
+package fr.mternez.echopulse.chat.resource.controller;
+
+import fr.mternez.echopulse.chat.data.model.Post;
+import fr.mternez.echopulse.chat.data.repository.PostRepository;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.Set;
+import java.util.UUID;
+
+@RestController
+@RequestMapping("/api/channels")
+public class ChannelPostsController {
+
+    private final PostRepository postRepository;
+
+    ChannelPostsController(
+            final PostRepository postRepository
+    ) {
+        this.postRepository = postRepository;
+    }
+
+    @GetMapping("{channelId}/posts")
+    public Set<Post> getLatest(@PathVariable UUID channelId) {
+        return this.postRepository.findAllByChannelId(channelId);
+    }
+}
+package fr.mternez.echopulse.chat.websocket.adapter;
+
+import fr.mternez.echopulse.chat.websocket.config.WebSocketTopic;
+import fr.mternez.echopulse.core.chat.domain.*;
+import fr.mternez.echopulse.core.chat.port.out.MessagePublisher;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.stereotype.Component;
+
+import java.util.UUID;
+
+import static java.lang.String.format;
+
+@Component
+public class MessagePublisherAdapter implements MessagePublisher {
+
+    private final SimpMessagingTemplate messagingTemplate;
+
+    MessagePublisherAdapter(
+            final SimpMessagingTemplate messagingTemplate
+    ) {
+        this.messagingTemplate = messagingTemplate;
+    }
+
+    @Override
+    public void publish(final PostMessage postMessage) {
+        final UUID channelId = postMessage.channelId().getValue();
+        this.messagingTemplate.convertAndSend(format(WebSocketTopic.SEND_MESSAGE_ON_CHANNEL.getTopic(), channelId.toString()), postMessage);
+    }
+
+    @Override
+    public void publish(ChannelCreatedMessage message) {
+        final UUID serverId = message.event().serverId().getValue();
+        this.messagingTemplate.convertAndSend(format(WebSocketTopic.CHANNEL_CREATED.getTopic(), serverId.toString()), message);
+    }
+
+    @Override
+    public void publish(ChannelDeletedMessage message) {
+        final UUID serverId = message.event().serverId().getValue();
+        this.messagingTemplate.convertAndSend(format(WebSocketTopic.CHANNEL_DELETED.getTopic(), serverId.toString()), message);
+    }
+
+    @Override
+    public void publish(UserJoinedMessage message) {
+        final UUID serverId = message.event().serverId().getValue();
+        this.messagingTemplate.convertAndSend(format(WebSocketTopic.USER_JOINED_SERVER.getTopic(), serverId.toString()), message);
+    }
+
+    @Override
+    public void publish(UserLeftMessage message) {
+        final UUID serverId = message.event().serverId().getValue();
+        this.messagingTemplate.convertAndSend(format(WebSocketTopic.USER_LEFT_SERVER.getTopic(), serverId.toString()), message);
+    }
+}
+package fr.mternez.echopulse.chat.websocket.config.handler;
+
+import org.springframework.http.server.ServerHttpRequest;
+import org.springframework.http.server.ServletServerHttpRequest;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtException;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+import org.springframework.stereotype.Component;
+import org.springframework.web.socket.WebSocketHandler;
+import org.springframework.web.socket.server.support.DefaultHandshakeHandler;
+
+import java.security.Principal;
+import java.util.Map;
+
+@Component
+public class SetPrincipalHandshakeHandler extends DefaultHandshakeHandler {
+
+    private final JwtDecoder jwtDecoder;
+
+    SetPrincipalHandshakeHandler(final JwtDecoder jwtDecoder) {
+        this.jwtDecoder = jwtDecoder;
+    }
+
+    @Override
+    protected boolean isValidOrigin(ServerHttpRequest request) {
+        return true;
+    }
+
+    @Override
+    protected Principal determineUser(ServerHttpRequest request, WebSocketHandler wsHandler, Map<String, Object> attributes) {
+        if (request instanceof ServletServerHttpRequest servletRequest) {
+
+            final String token = servletRequest.getServletRequest().getParameter("token");
+
+            if (token == null) throw new IllegalArgumentException("Missing Authorization header");;
+
+            try {
+                final Jwt jwt = jwtDecoder.decode(token);
+                final Authentication auth = new JwtAuthenticationToken(jwt);
+                return auth;
+            } catch (JwtException e) {
+                throw new IllegalArgumentException("Invalid JWT token");
+            }
+
+        }
+        return null;
+    }
+}
+package fr.mternez.echopulse.chat.websocket.config.interceptor;
+
+import org.springframework.messaging.Message;
+import org.springframework.messaging.MessageChannel;
+import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
+import org.springframework.messaging.simp.stomp.StompCommand;
+import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
+import org.springframework.messaging.support.ChannelInterceptor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtException;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+import org.springframework.stereotype.Component;
+
+import java.util.List;
+
+@Component
+public class JwtChannelInterceptor implements ChannelInterceptor {
+
+    private final JwtDecoder jwtDecoder;
+
+    JwtChannelInterceptor(final JwtDecoder jwtDecoder) {
+        this.jwtDecoder = jwtDecoder;
+    }
+
+    @Override
+    public Message<?> preSend(final Message<?> message, final MessageChannel channel) {
+        StompHeaderAccessor accessor = StompHeaderAccessor.wrap(message);
+        if (StompCommand.SEND.equals(accessor.getCommand()) || StompCommand.SUBSCRIBE.equals(accessor.getCommand())) {
+            String token = getTokenFromHeader(accessor);
+            if (token != null) {
+                try {
+                    final Jwt jwt = jwtDecoder.decode(token);
+                    final Authentication auth = new JwtAuthenticationToken(jwt);
+                    accessor.setUser(auth);
+                    accessor.setHeader(SimpMessageHeaderAccessor.USER_HEADER, auth);
+                    SecurityContextHolder.getContext().setAuthentication(auth);
+                } catch (JwtException e) {
+                    throw new IllegalArgumentException("Invalid JWT token");
+                }
+            } else {
+                throw new IllegalArgumentException("Missing Authorization header");
+            }
+        }
+        return message;
+    }
+
+    private String getTokenFromHeader(final StompHeaderAccessor accessor) {
+        List<String> authHeaders = accessor.getNativeHeader("Authorization");
+        if (authHeaders != null && !authHeaders.isEmpty()) {
+            String bearer = authHeaders.get(0);
+            if (bearer.startsWith("Bearer ")) {
+                return bearer.substring(7);
+            }
+        }
+        return null;
+    }
+}
+package fr.mternez.echopulse.chat.websocket.config.interceptor;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.server.ServerHttpRequest;
+import org.springframework.http.server.ServerHttpResponse;
+import org.springframework.http.server.ServletServerHttpRequest;
+import org.springframework.lang.Nullable;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtException;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+import org.springframework.stereotype.Component;
+import org.springframework.web.socket.WebSocketHandler;
+import org.springframework.web.socket.server.HandshakeInterceptor;
+
+import java.util.Map;
+
+@Component
+public class WebsocketHandshakeInterceptor implements HandshakeInterceptor {
+
+    private final JwtDecoder jwtDecoder;
+
+    WebsocketHandshakeInterceptor(final JwtDecoder jwtDecoder) {
+        this.jwtDecoder = jwtDecoder;
+    }
+
+    @Override
+    public boolean beforeHandshake(final ServerHttpRequest request, final ServerHttpResponse response,
+                                   final WebSocketHandler wsHandler, final Map<String, Object> attributes) {
+        if (request instanceof ServletServerHttpRequest servletRequest) {
+            String token = servletRequest.getServletRequest().getParameter("token");
+            if (token == null) return false;
+
+            try {
+                Jwt jwt = jwtDecoder.decode(token);
+                final Authentication auth = new JwtAuthenticationToken(jwt);
+                attributes.put("user", auth);
+                return true;
+            } catch (JwtException e) {
+                return false;
+            }
+        }
+        response.setStatusCode(HttpStatus.UNAUTHORIZED);
+        return false;
+    }
+
+    @Override
+    public void afterHandshake(final ServerHttpRequest request, final ServerHttpResponse response,
+                               final WebSocketHandler wsHandler, final @Nullable Exception exception) {
+    }
+}
+package fr.mternez.echopulse.chat.websocket.config;
+
+import fr.mternez.echopulse.chat.websocket.config.handler.SetPrincipalHandshakeHandler;
+import fr.mternez.echopulse.chat.websocket.config.interceptor.JwtChannelInterceptor;
+import fr.mternez.echopulse.chat.websocket.config.interceptor.WebsocketHandshakeInterceptor;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.messaging.handler.invocation.HandlerMethodArgumentResolver;
+import org.springframework.messaging.simp.config.ChannelRegistration;
+import org.springframework.messaging.simp.config.MessageBrokerRegistry;
+import org.springframework.security.messaging.context.AuthenticationPrincipalArgumentResolver;
+import org.springframework.web.socket.config.annotation.EnableWebSocket;
+import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
+import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
+import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
+
+import java.util.List;
+
+@Configuration
+@EnableWebSocket
+@EnableWebSocketMessageBroker
+public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
+
+    private final WebsocketHandshakeInterceptor interceptor;
+    private final JwtChannelInterceptor jwtChannelInterceptor;
+    private final SetPrincipalHandshakeHandler setPrincipalHandshakeHandler;
+
+    WebSocketConfig(
+            final WebsocketHandshakeInterceptor interceptor,
+            final JwtChannelInterceptor jwtChannelInterceptor,
+            SetPrincipalHandshakeHandler setPrincipalHandshakeHandler
+    ) {
+        this.interceptor = interceptor;
+        this.jwtChannelInterceptor = jwtChannelInterceptor;
+        this.setPrincipalHandshakeHandler = setPrincipalHandshakeHandler;
+    }
+
+    @Override
+    public void configureMessageBroker(MessageBrokerRegistry config) {
+        // Inbound messages endpoints prefix
+        config.setApplicationDestinationPrefixes("/app");
+        // Subscription endpoints
+        config.enableSimpleBroker("/channels", "/servers");
+    }
+
+    @Override
+    public void registerStompEndpoints(StompEndpointRegistry registry) {
+
+        registry.addEndpoint("/ws")
+                .setAllowedOriginPatterns("http://localhost:4200")
+                .setHandshakeHandler(this.setPrincipalHandshakeHandler);
+//                .addInterceptors(this.interceptor);
+
+    }
+
+    @Override
+    public void addArgumentResolvers(List<HandlerMethodArgumentResolver> argumentResolvers) {
+        argumentResolvers.add(new AuthenticationPrincipalArgumentResolver());
+    }
+
+    @Override
+    public void configureClientInboundChannel(ChannelRegistration registration) {
+        registration.interceptors(jwtChannelInterceptor);
+    }
+}
+package fr.mternez.echopulse.chat.websocket.config;
+
+public enum WebSocketTopic {
+
+    SEND_MESSAGE_ON_CHANNEL("/channels/%s"),
+    CHANNEL_CREATED("/servers/%s/channels/created"),
+    CHANNEL_DELETED("/servers/%s/channels/deleted"),
+    USER_JOINED_SERVER("/servers/%s/user-joined"),
+    USER_LEFT_SERVER("/servers/%s/user-left");
+
+    private final String topic;
+
+    WebSocketTopic(final String topic) {
+        this.topic = topic;
+    }
+
+    public String getTopic() {
+        return this.topic;
+    }
+}
+package fr.mternez.echopulse.chat.websocket.controller;
+
+import fr.mternez.echopulse.core.chat.domain.PostMessage;
+import fr.mternez.echopulse.core.chat.port.in.PostEventHandler;
+import fr.mternez.echopulse.core.common.domain.model.ChannelId;
+import org.springframework.messaging.handler.annotation.DestinationVariable;
+import org.springframework.messaging.handler.annotation.MessageMapping;
+import org.springframework.messaging.handler.annotation.Payload;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+import org.springframework.stereotype.Controller;
+
+import java.security.Principal;
+import java.time.Instant;
+import java.util.UUID;
+
+@Controller
+@MessageMapping("/channels")
+public class ChannelController {
+
+    private final PostEventHandler postEventHandler;
+
+    ChannelController(
+            final PostEventHandler postEventHandler
+    ) {
+        this.postEventHandler = postEventHandler;
+    }
+
+    @MessageMapping("{channelId}")
+    public void handleMessage(@DestinationVariable final String channelId, @Payload final String content, final Principal auth) {
+        final String username = ((JwtAuthenticationToken) auth).getTokenAttributes().get("preferred_username").toString();
+        final UUID channelUUID = UUID.fromString(channelId);
+        final PostMessage message = new PostMessage(username, new ChannelId(channelUUID), content, Instant.now());
+        this.postEventHandler.handleMessage(message);
+    }
+}
+package fr.mternez.echopulse.chat;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class ChatServiceApplication {
+
+	public static void main(String[] args) {
+		SpringApplication.run(ChatServiceApplication.class, args);
+	}
+
+}

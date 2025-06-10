@@ -1,0 +1,145 @@
+
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.0
+    container_name: zookeeper
+    restart: always
+    networks:
+      - kafka-network
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+      ZOOKEEPER_SYNC_LIMIT: 2
+    volumes:
+      - ./data/kafka/zookeeper/data:/var/lib/zookeeper/data
+      - ./data/kafka/zookeeper/log:/var/lib/zookeeper/log
+
+  kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    container_name: kafka
+    restart: always
+    networks:
+      - kafka-network
+    ports:
+      - "9092:9092"    # Pour ton PC
+      - "29092:29092"  # Pour tes futurs services Docker
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://kafka:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_INTERNAL://0.0.0.0:29092
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT_INTERNAL
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+  kafdrop:
+    image: obsidiandynamics/kafdrop:latest
+    container_name: kafdrop
+    restart: always
+    networks:
+      - kafka-network
+    ports:
+      - "9000:9000"
+    depends_on:
+      - kafka
+    environment:
+      KAFKA_BROKER_CONNECT: kafka:29092
+
+  keycloak-service:
+    container_name: keycloak-service
+    image: keycloak/keycloak:26.1
+    command: start-dev --verbose
+    restart: always
+    networks:
+      - keycloak-service-network
+      - server-service-network
+      - chat-service-network
+    ports:
+      - "18080:8080"
+    environment:
+      KC_HEALTH_ENABLED: true
+      KC_METRICS_ENABLED: true
+      KC_HTTP_ENABLED: true
+      KC_HOSTNAME_STRICT_HTTPS: false
+      KEYCLOAK_SSL_REQUIRED: none
+      KC_HOSTNAME_STRICT_BACKCHANNEL: false
+      KC_HOSTNAME: localhost
+      KC_HOSTNAME_PORT: 8080
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KEYCLOAK_USER: user
+      KEYCLOAK_PASSWORD: userpass
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://keycloak-service-db/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: keycloak
+      JAVA_OPTS_KC_HEAP: -XX:MinHeapFreeRatio=30 -XX:MaxHeapFreeRatio=40 -XX:MaxRAMPercentage=65
+    volumes:
+      - ./data/keycloak-service/realms/:/opt/keycloak/data/import/
+    depends_on:
+      keycloak-service-db:
+        condition: service_healthy
+
+  keycloak-service-db:
+    container_name: keycloak-service-db
+    image: postgres:17.4
+    restart: always
+    networks:
+      - keycloak-service-network
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U keycloak" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: keycloak
+      PG_DATA: /var/lib/postgresql/data
+    volumes:
+      - ./data/keycloak-service/postgres-data:/var/lib/postgresql/data
+
+  server-service-db:
+    container_name: server-service-db
+    image: postgres:17.4
+    restart: always
+    networks:
+      - server-service-network
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    environment:
+      POSTGRES_DB: serverdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: admin
+      PG_DATA: /var/lib/postgresql/data
+    volumes:
+      - ./data/server-service/postgres-data:/var/lib/postgresql/data
+
+  chat-service-redis-db:
+    container_name: chat-service-redis-db
+    image: redis:7.4.2
+    command: redis-server --save 20 1 --loglevel warning --requirepass admin
+    restart: always
+    networks:
+      - chat-service-network
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./data/chat-service/redis-data:/data
+
+networks:
+  keycloak-service-network: {}
+  server-service-network: {}
+  chat-service-network: {}
+  kafka-network: {}

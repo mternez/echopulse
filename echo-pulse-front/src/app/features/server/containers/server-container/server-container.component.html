@@ -1,0 +1,52 @@
+<div class="flex flex-col h-full min-w-64 self-stretch bg-gray-700">
+  @if(selectedServerDetailsLoading()) {
+    <div class="flex items-center justify-between px-3 py-2 bg-gray-600 text-white border-b">
+      <p-skeleton width="12rem" styleClass="rounded"/>
+    </div>
+  } @else {
+    <div class="flex items-center justify-between px-3 py-2 bg-gray-600 text-white border-b">
+      <h2 class="text-sm font-semibold truncate">
+        {{ selectedServer()?.name! }}
+      </h2>
+      <div class="flex gap-3">
+        <button
+          type="button"
+          pButton
+          icon="pi pi-share-alt"
+          class="p-0 w-6 h-6 rounded-full hover:bg-indigo-500 flex items-center justify-center transition-colors duration-150"
+          aria-label="Share"
+          [cdkCopyToClipboard]="selectedServer()?.id!"
+        ></button>
+        <button
+          type="button"
+          pButton
+          icon="pi pi-sign-out"
+          class="p-0 w-6 h-6 rounded-full hover:bg-red-600 flex items-center justify-center transition-colors duration-150"
+          aria-label="Delete Server"
+          (click)="onLeaveServer()"
+        >
+        </button>
+        <button
+          type="button"
+          pButton
+          icon="pi pi-times"
+          class="p-0 w-6 h-6 rounded-full hover:bg-red-600 flex items-center justify-center transition-colors duration-150"
+          aria-label="Delete Server"
+          appHasPermission
+          [serverId]="selectedServer()?.id!"
+          [permission]="'DELETE_SERVER'"
+          (click)="onDeleteServer()"
+        >
+        </button>
+      </div>
+    </div>
+  }
+  <app-server-channels-sidebar [loading]="selectedServerChannelsLoading()" [channels]="selectedServerChannels()!" class="h-full min-w-52"/>
+</div>
+@if(currentChannel()) {
+  <app-server-channel-content class="flex flex-col w-full bg-gray-500" />
+} @else {
+  <div class="flex flex-col w-full bg-gray-500 text-center">Select a channel</div>
+}
+<!-- Sidebar droite : Liste des membres -->
+<app-server-members-sidebar [loading]="selectedServerMembersLoading()" [members]="selectedServerMembers()!" class="min-w-52 bg-gray-700"/>

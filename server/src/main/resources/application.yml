@@ -1,0 +1,32 @@
+server:
+  port: 8282
+spring:
+  application:
+    name: server-service
+  datasource:
+    url: jdbc:postgresql://localhost:5432/serverdb
+    username: postgres
+    password: admin
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+  data:
+    jdbc:
+      dialect: postgresql
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      value-deserializer: org.apache.kafka.common.serialization.ByteArrayDeserializer
+    producer:
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring:
+          json:
+            add:
+              type:
+                headers: false
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:18080/realms/echopulse

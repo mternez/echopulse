@@ -1,0 +1,11 @@
+package fr.mternez.echopulse.core.server.application.command;
+
+import fr.mternez.echopulse.core.common.application.InvocationSource;
+import fr.mternez.echopulse.core.common.domain.model.ServerId;
+import fr.mternez.echopulse.core.common.domain.model.UserId;
+
+public record CreateMembershipCmd(
+        InvocationSource invocationSource,
+        ServerId serverId,
+        UserId targetUserId
+) implements ServerCommand { }

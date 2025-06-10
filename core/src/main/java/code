@@ -1,0 +1,1605 @@
+package fr.mternez.echopulse.core.chat.application;
+
+import fr.mternez.echopulse.core.chat.domain.ChannelCreatedMessage;
+import fr.mternez.echopulse.core.chat.domain.ChannelDeletedMessage;
+import fr.mternez.echopulse.core.chat.port.in.ChannelEventHandler;
+import fr.mternez.echopulse.core.chat.port.out.MessagePublisher;
+import fr.mternez.echopulse.core.common.event.ChannelCreated;
+import fr.mternez.echopulse.core.common.event.ChannelDeleted;
+
+public class ChannelEventHandlerImpl implements ChannelEventHandler {
+
+    private final MessagePublisher messagePublisher;
+
+    public ChannelEventHandlerImpl(
+            final MessagePublisher messagePublisher
+    ) {
+        this.messagePublisher = messagePublisher;
+    }
+
+
+    @Override
+    public void handleEvent(ChannelCreated event) {
+        this.messagePublisher.publish(new ChannelCreatedMessage(event));
+    }
+
+    @Override
+    public void handleEvent(ChannelDeleted event) {
+        this.messagePublisher.publish(new ChannelDeletedMessage(event));
+    }
+}
+package fr.mternez.echopulse.core.chat.application;
+
+import fr.mternez.echopulse.core.chat.domain.PostMessage;
+import fr.mternez.echopulse.core.chat.port.in.PostEventHandler;
+import fr.mternez.echopulse.core.chat.port.out.MessagePublisher;
+import fr.mternez.echopulse.core.common.event.PostSent;
+import fr.mternez.echopulse.core.chat.port.out.PostEventPublisher;
+
+public class PostEventHandlerImpl implements PostEventHandler {
+
+    private final MessagePublisher messagePublisher;
+    private final PostEventPublisher eventPublisher;
+
+    public PostEventHandlerImpl(
+            final MessagePublisher messagePublisher,
+            final PostEventPublisher eventPublisher
+    ) {
+        this.messagePublisher = messagePublisher;
+        this.eventPublisher = eventPublisher;
+    }
+
+    @Override
+    public void handleMessage(final PostMessage message) {
+        final PostSent event = new PostSent(message);
+        this.eventPublisher.publish(event);
+    }
+
+    @Override
+    public void handleEvent(final PostSent event) {
+        final PostMessage postMessage = event.postMessage();
+        this.messagePublisher.publish(postMessage);
+    }
+}
+package fr.mternez.echopulse.core.chat.application;
+
+import fr.mternez.echopulse.core.chat.domain.UserJoinedMessage;
+import fr.mternez.echopulse.core.chat.domain.UserLeftMessage;
+import fr.mternez.echopulse.core.chat.port.in.UserEventHandler;
+import fr.mternez.echopulse.core.chat.port.out.MessagePublisher;
+import fr.mternez.echopulse.core.common.event.UserJoinedServer;
+import fr.mternez.echopulse.core.common.event.UserLeftServer;
+
+public class UserEventHandlerImpl implements UserEventHandler {
+
+    private final MessagePublisher messagePublisher;
+
+    public UserEventHandlerImpl(
+            final MessagePublisher messagePublisher
+    ) {
+        this.messagePublisher = messagePublisher;
+    }
+
+    @Override
+    public void handleEvent(UserJoinedServer event) {
+        this.messagePublisher.publish(new UserJoinedMessage(event));
+    }
+
+    @Override
+    public void handleEvent(UserLeftServer event) {
+        this.messagePublisher.publish(new UserLeftMessage(event));
+    }
+}
+package fr.mternez.echopulse.core.chat.domain;
+
+import fr.mternez.echopulse.core.common.event.ChannelCreated;
+
+public record ChannelCreatedMessage(ChannelCreated event) {}
+package fr.mternez.echopulse.core.chat.domain;
+
+import fr.mternez.echopulse.core.common.event.ChannelDeleted;
+
+public record ChannelDeletedMessage(ChannelDeleted event) { }
+package fr.mternez.echopulse.core.chat.domain;
+
+import fr.mternez.echopulse.core.common.domain.model.ChannelId;
+
+import java.time.Instant;
+
+public record PostMessage(String username, ChannelId channelId, String content, Instant timestamp) {
+}
+package fr.mternez.echopulse.core.chat.domain;
+
+import fr.mternez.echopulse.core.common.event.UserJoinedServer;
+
+public record UserJoinedMessage(UserJoinedServer event) {
+}
+package fr.mternez.echopulse.core.chat.domain;
+
+import fr.mternez.echopulse.core.common.event.UserLeftServer;
+
+public record UserLeftMessage(UserLeftServer event) { }
+package fr.mternez.echopulse.core.chat.port.in;
+
+import fr.mternez.echopulse.core.common.event.ChannelCreated;
+import fr.mternez.echopulse.core.common.event.ChannelDeleted;
+
+public interface ChannelEventHandler {
+    void handleEvent(ChannelCreated event);
+    void handleEvent(ChannelDeleted event);
+}
+package fr.mternez.echopulse.core.chat.port.in;
+
+import fr.mternez.echopulse.core.chat.domain.PostMessage;
+import fr.mternez.echopulse.core.common.event.PostSent;
+
+public interface PostEventHandler {
+    void handleMessage(PostMessage message);
+    void handleEvent(PostSent event);
+}
+package fr.mternez.echopulse.core.chat.port.in;
+
+import fr.mternez.echopulse.core.common.event.UserJoinedServer;
+import fr.mternez.echopulse.core.common.event.UserLeftServer;
+
+public interface UserEventHandler {
+    void handleEvent(UserJoinedServer event);
+    void handleEvent(UserLeftServer event);
+}
+package fr.mternez.echopulse.core.chat.port.out;
+
+import fr.mternez.echopulse.core.chat.domain.*;
+
+public interface MessagePublisher {
+
+    void publish(PostMessage postMessage);
+    void publish(ChannelCreatedMessage message);
+    void publish(ChannelDeletedMessage message);
+    void publish(UserJoinedMessage message);
+    void publish(UserLeftMessage message);
+}
+package fr.mternez.echopulse.core.chat.port.out;
+
+import fr.mternez.echopulse.core.common.event.PostSent;
+
+public interface PostEventPublisher {
+    void publish(PostSent event);
+}
+package fr.mternez.echopulse.core.common.application;
+
+import fr.mternez.echopulse.core.common.domain.model.User;
+
+import java.time.Instant;
+
+public record InvocationSource(User user, Instant timestamp) {
+}
+package fr.mternez.echopulse.core.common.domain.error;
+
+import fr.mternez.echopulse.core.common.domain.model.ChannelId;
+
+public class ChannelNotFound extends DomainError {
+
+    private final ChannelId channelId;
+
+    public ChannelNotFound(final ChannelId channelId) {
+        this.channelId = channelId;
+    }
+
+    public ChannelNotFound(final ChannelId channelId, Exception e) {
+        super(e);
+        this.channelId = channelId;
+    }
+
+    public ChannelId getChannelId() {
+        return this.channelId;
+    }
+}
+package fr.mternez.echopulse.core.common.domain.error;
+
+public class DomainError extends RuntimeException {
+
+    public DomainError() {
+        super();
+    }
+
+    public DomainError(final Throwable cause) {
+        super(cause);
+    }
+}
+package fr.mternez.echopulse.core.common.domain.error;
+
+import fr.mternez.echopulse.core.common.domain.model.ServerId;
+import fr.mternez.echopulse.core.common.domain.model.UserId;
+
+public class MembershipNotFound extends DomainError {
+
+    private final UserId userId;
+    private final ServerId serverId;
+
+    public MembershipNotFound(final UserId userId, final ServerId serverId) {
+        this.userId = userId;
+        this.serverId = serverId;
+    }
+
+    public UserId getUserId() {
+        return userId;
+    }
+
+    public ServerId getServerId() {
+        return serverId;
+    }
+}
+package fr.mternez.echopulse.core.common.domain.error;
+
+import fr.mternez.echopulse.core.common.domain.model.Permission;
+import fr.mternez.echopulse.core.common.domain.model.ServerId;
+import fr.mternez.echopulse.core.common.domain.model.UserId;
+
+import static java.lang.String.format;
+
+public class PermissionDenied extends DomainError {
+
+    private final UserId userId;
+    private final ServerId serverId;
+    private final Permission permission;
+    private final String reason;
+
+    public PermissionDenied(final UserId userId, final ServerId serverId, final Permission permission) {
+        this.userId = userId;
+        this.serverId = serverId;
+        this.permission = permission;
+        this.reason = format("User ('%s') lacks permission '%s' on server ('%s').", userId.getValue(), serverId.getValue(), permission.getDescription());
+    }
+
+    public PermissionDenied(final UserId userId, final ServerId serverId, final String reason) {
+        this.userId = userId;
+        this.serverId = serverId;
+        this.permission = null;
+        this.reason = reason;
+    }
+
+    public UserId getUserId() {
+        return userId;
+    }
+
+    public ServerId getServerId() {
+        return serverId;
+    }
+
+    public Permission getPermission() {
+        return permission;
+    }
+
+    public String getReason() {
+        return reason;
+    }
+}
+package fr.mternez.echopulse.core.common.domain.error;
+
+public class PersistenceException extends Exception {
+
+
+    public PersistenceException(
+            final Class<?> clazz,
+            final Throwable cause
+    ) {
+        super("Repository exception for '%s'.".formatted(clazz), cause);
+    }
+}
+package fr.mternez.echopulse.core.common.domain.error;
+
+import fr.mternez.echopulse.core.common.domain.model.ServerId;
+import fr.mternez.echopulse.core.common.domain.model.UserId;
+
+public class RoleAssignmentNotFound extends DomainError {
+
+    private final UserId userId;
+    private final ServerId serverId;
+    private final String name;
+
+    public RoleAssignmentNotFound(final UserId userId, final ServerId serverId, final String name) {
+        this.userId = userId;
+        this.serverId = serverId;
+        this.name = name;
+    }
+
+    public UserId getUserId() {
+        return userId;
+    }
+
+    public ServerId getServerId() {
+        return serverId;
+    }
+
+    public String getName() {
+        return name;
+    }
+}
+package fr.mternez.echopulse.core.common.domain.error;
+
+import fr.mternez.echopulse.core.common.domain.model.ServerId;
+
+import java.util.HashSet;
+import java.util.Set;
+
+public class RoleNotFound extends DomainError {
+
+    private final ServerId serverId;
+    private final Set<String> names = new HashSet<>();
+
+    public RoleNotFound(final ServerId serverId) {
+        this.serverId = serverId;
+    }
+
+    public RoleNotFound(final ServerId serverId, final String name) {
+        this.serverId = serverId;
+        this.names.add(name);
+    }
+
+    public RoleNotFound(final ServerId serverId, final Set<String> names) {
+        this.serverId = serverId;
+        this.names.addAll(names);
+    }
+
+    public ServerId getServerId() {
+        return this.serverId;
+    }
+
+    public Set<String> getNames() {
+        return this.names;
+    }
+}
+package fr.mternez.echopulse.core.common.domain.error;
+
+import fr.mternez.echopulse.core.common.domain.model.ServerId;
+
+public class ServerNotFound extends DomainError {
+
+    private final ServerId serverId;
+
+    public ServerNotFound(final ServerId serverId) {
+        this.serverId = serverId;
+    }
+
+    public ServerNotFound(final ServerId serverId, final Exception e) {
+        super(e);
+        this.serverId = serverId;
+    }
+
+    public ServerId getServerId() {
+        return serverId;
+    }
+}
+package fr.mternez.echopulse.core.common.domain.error;
+
+import fr.mternez.echopulse.core.common.domain.model.UserId;
+
+public class UserNotFound extends DomainError {
+
+    private final UserId userId;
+
+    public UserNotFound(final UserId userId) {
+        this.userId = userId;
+    }
+
+    public UserNotFound(final UserId userId, final Exception e) {
+        super(e);
+        this.userId = userId;
+    }
+
+    public UserId getUserId() {
+        return userId;
+    }
+}
+package fr.mternez.echopulse.core.common.domain.model;
+
+public class Channel {
+
+    private final ChannelId id;
+    private final ServerId serverId;
+    private final String name;
+
+    public Channel(final ChannelId id, final ServerId serverId, final String name) {
+        if (serverId == null) {
+            throw new IllegalArgumentException("Server id cannot be null");
+        }
+        if(name == null || name.isEmpty()) {
+            throw new IllegalArgumentException("Channel name cannot be null or empty");
+        }
+        this.id = id;
+        this.serverId = serverId;
+        this.name = name;
+    }
+
+    public Channel(final ServerId serverId, final String name) {
+        if (serverId == null) {
+            throw new IllegalArgumentException("Server id cannot be null");
+        }
+        if(name == null || name.isEmpty()) {
+            throw new IllegalArgumentException("Channel name cannot be null or empty");
+        }
+        this.id = new ChannelId();
+        this.serverId = serverId;
+        this.name = name;
+    }
+
+    public ChannelId getId() {
+        return id;
+    }
+
+    public ServerId getServerId() {
+        return serverId;
+    }
+
+    public String getName() {
+        return name;
+    }
+}
+package fr.mternez.echopulse.core.common.domain.model;
+
+import java.util.UUID;
+
+public class ChannelId extends DomainModelUuid {
+    public ChannelId() { super(); }
+    public ChannelId(final UUID value) { super(value); }
+}
+package fr.mternez.echopulse.core.common.domain.model;
+
+import com.github.f4b6a3.uuid.UuidCreator;
+
+import java.util.UUID;
+
+public abstract class DomainModelUuid {
+
+    private final UUID value;
+
+    public DomainModelUuid() {
+        this.value = UuidCreator.getTimeOrderedEpoch();
+    }
+    public DomainModelUuid(final UUID value) {
+        this.value = value;
+    }
+
+    public UUID getValue() {
+        return value;
+    }
+
+    @Override public int hashCode() { return value.hashCode(); }
+
+    @Override public boolean equals(Object o) {
+        return (o instanceof DomainModelUuid dm) && value.equals(dm.value);
+    }
+}
+package fr.mternez.echopulse.core.common.domain.model;
+
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+
+public class Membership {
+
+    private final ServerId serverId;
+
+    private final UserId userId;
+
+    private final Set<Role> roles = new HashSet<>();
+
+    public Membership(final ServerId serverId, final UserId userId, final Role ...initialRoles) {
+        if(serverId == null) {
+            throw new IllegalArgumentException("Server id cannot be null");
+        }
+        if(userId == null) {
+            throw new IllegalArgumentException("User id cannot be null");
+        }
+        if(initialRoles == null || initialRoles.length == 0) {
+            throw new IllegalArgumentException("An initial role must be provided");
+        }
+        this.serverId = serverId;
+        this.userId = userId;
+        for(Role role : initialRoles) {
+            this.roles.add(role);
+        }
+    }
+
+    public Membership(final ServerId serverId, final UserId userId, final Set<Role> initialRoles) {
+        if(serverId == null) {
+            throw new IllegalArgumentException("Server id cannot be null");
+        }
+        if(userId == null) {
+            throw new IllegalArgumentException("User id cannot be null");
+        }
+        if(initialRoles == null || initialRoles.isEmpty()) {
+            throw new IllegalArgumentException("An initial role must be provided");
+        }
+        this.serverId = serverId;
+        this.userId = userId;
+        this.roles.addAll(initialRoles);
+    }
+
+    public ServerId getServerId() {
+        return this.serverId;
+    }
+
+    public UserId getUserId() {
+        return this.userId;
+    }
+
+    public Set<Role> getRoles() {
+        return Collections.unmodifiableSet(this.roles);
+    }
+
+    public void addRole(final Role role) {
+        final boolean alreadyExists = this.roles.stream().anyMatch(r -> r.getName().equals(role.getName()));
+        if(alreadyExists) {
+           throw new IllegalArgumentException("Role already exists");
+        }
+        this.roles.add(role);
+    }
+
+    public void removeRole(final Role role) {
+        this.roles.remove(role);
+    }
+}
+package fr.mternez.echopulse.core.common.domain.model;
+
+public enum Permission {
+
+    DELETE_SERVER("Delete server."),
+    MANAGE_CHANNELS("Manage channels."),
+    MANAGE_MEMBERS("Manage users."),
+    MANAGE_ROLES("Manage roles.");
+
+    private final String description;
+
+    Permission(final String description) {
+        this.description = description;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+}
+package fr.mternez.echopulse.core.common.domain.model;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+
+public class Role {
+
+    private String name;
+
+    private String description;
+
+    private String color;
+
+    private final Set<Permission> permissions = new HashSet<>(1);
+
+    public Role(String name, final Permission ...permissions) {
+        this.setName(name);
+        this.addPermission(permissions);
+    }
+
+    public Role(String name, final String description, final String color, final Permission ...permissions) {
+        this.setName(name);
+        this.setDescription(description);
+        this.setColor(color);
+        this.addPermission(permissions);
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        if(name == null || name.isEmpty()) {
+            throw new IllegalArgumentException("Role name cannot be null or empty");
+        }
+        this.name = name;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(final String description) {
+        this.description = description;
+    }
+
+    public String getColor() {
+        return color;
+    }
+
+    public void setColor(final String color) {
+        this.color = color;
+    }
+
+    public void addPermission(final Permission permission) {
+        this.permissions.add(permission);
+    }
+
+    public void addPermission(final Permission ...permission) {
+        if (permission != null) {
+            this.permissions.addAll(Arrays.stream(permission).toList());
+        }
+    }
+
+    public void removePermission(final Permission permission) {
+        this.permissions.remove(permission);
+    }
+
+    public Set<Permission> getPermissions() {
+        return Collections.unmodifiableSet(permissions);
+    }
+}
+package fr.mternez.echopulse.core.common.domain.model;
+
+public class RoleAssignment {
+
+    private final Membership membership;
+    private final Role role;
+
+    public RoleAssignment (final Membership membership, final Role role) {
+        this.membership = membership;
+        this.role = role;
+    }
+}
+package fr.mternez.echopulse.core.common.domain.model;
+
+import fr.mternez.echopulse.core.common.domain.error.RoleNotFound;
+
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+
+public class Server {
+
+    private final ServerId id;
+
+    private String name;
+
+    private User owner;
+
+    private Role defaultRole;
+
+    private final Set<Role> roles = new HashSet<>();
+
+    public Server(
+            final ServerId id,
+            final String name,
+            final User owner
+    ) {
+        this.id = id;
+        this.setName(name);
+        this.setOwner(owner);
+    }
+
+    public ServerId getId() {
+        return id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    private void setName(final String name) {
+        if(name == null || name.isEmpty()) {
+            throw new IllegalArgumentException("Server name cannot be null or empty");
+        }
+        this.name = name;
+    }
+
+    public User getOwner() {
+        return owner;
+    }
+
+    public void setOwner(User owner) {
+        if(owner == null || owner.getId() == null) {
+            throw new IllegalArgumentException("Server owner cannot be null or empty");
+        }
+        this.owner = owner;
+    }
+
+    public Role getDefaultRole() {
+        return this.defaultRole;
+    }
+
+    public void setDefaultRole(final Role defaultRole) {
+        this.defaultRole = defaultRole;
+    }
+
+    public Set<Role> getRoles() {
+        return Collections.unmodifiableSet(this.roles);
+    }
+
+    public void addRole(final Role role) {
+        this.roles.add(role);
+    }
+
+    public void removeRole(final Role role) {
+        this.removeRole(role.getName());
+    }
+
+    public void removeRole(final String roleName) {
+        if(this.roles.stream().noneMatch(r -> r.getName().equals(roleName))) {
+            throw new RoleNotFound(this.id, roleName);
+        }
+        this.roles.removeIf(r -> r.getName().equals(roleName));
+    }
+
+    public boolean hasRoles(final String ...roleNames) {
+        if(roleNames == null || roleNames.length == 0) {
+            return false;
+        }
+        for(final String roleName : roleNames) {
+            if(this.roles.stream().noneMatch(r -> r.getName().equals(roleName))) {
+                return false;
+            }
+        }
+        return true;
+    }
+}
+package fr.mternez.echopulse.core.common.domain.model;
+
+import java.util.UUID;
+
+public class ServerId extends DomainModelUuid {
+    public ServerId() { super(); }
+    public ServerId(final UUID value) { super(value); }
+}
+package fr.mternez.echopulse.core.common.domain.model;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+
+public class User {
+
+    private final UserId id;
+
+    private String username;
+
+    private String displayName;
+
+    private final Set<Membership> memberships = new HashSet<>();
+
+    public User(final UserId id, final String username) {
+        this.id = id;
+        this.setUsername(username);
+        this.setDisplayName(username);
+    }
+
+    public User(final UserId id, final String username, final String displayName) {
+        this.id = id;
+        this.setUsername(username);
+        this.setDisplayName(displayName);
+    }
+
+    public UserId getId() {
+        return id;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(final String username) {
+        if(username == null || username.isEmpty()) {
+            throw new IllegalArgumentException("Username cannot be null or empty");
+        }
+        this.username = username;
+    }
+
+    public String getDisplayName() {
+        return displayName;
+    }
+
+    public void setDisplayName(String displayName) {
+        if(displayName == null || displayName.isEmpty()) {
+            throw new IllegalArgumentException("Display name cannot be null or empty");
+        }
+        this.displayName = displayName;
+    }
+
+    public Set<Membership> getMemberships() {
+        return Collections.unmodifiableSet(this.memberships);
+    }
+
+    public Membership getMembership(final ServerId serverId) {
+        return this.memberships.stream()
+                .filter(m -> m.getServerId().equals(serverId))
+                .findFirst()
+                .orElse(null);
+    }
+
+    public void addMemberships(final Membership ...membership) {
+        Arrays.stream(membership).forEach(this.memberships::add);
+    }
+
+    public void addMembership(final Membership membership) {
+
+        final boolean alreadyExists = this.memberships
+                .stream()
+                .anyMatch(m -> m.getServerId().equals(membership.getServerId()));
+        if(alreadyExists) {
+            throw new IllegalArgumentException("Membership already exists");
+        }
+        this.memberships.add(membership);
+    }
+
+    public void removeMembership(final Membership membership) {
+        this.memberships.remove(membership);
+    }
+
+    public void removeMembership(final ServerId serverId) {
+        this.memberships.removeIf(m -> m.getServerId().equals(serverId));
+    }
+
+    public boolean isMemberOf(final ServerId serverId) {
+        return this.memberships.stream().anyMatch(m -> m.getServerId().equals(serverId));
+    }
+
+    public boolean hasPermission(final Permission permission) {
+        return this.memberships.stream().anyMatch(
+                (membership) -> membership.getRoles().stream().anyMatch(
+                        (role) -> role.getPermissions().stream().anyMatch(permission::equals)
+                )
+        );
+    }
+
+    public boolean hasRole(final Role role) {
+        return this.memberships.stream().anyMatch(
+                (membership) -> membership.getRoles().stream().anyMatch(
+                        r -> r.getName().equals(role.getName())
+                )
+        );
+    }
+}
+package fr.mternez.echopulse.core.common.domain.model;
+
+import java.util.UUID;
+
+public class UserId extends DomainModelUuid {
+    public UserId() { super(); }
+    public UserId(final UUID value) { super(value); }
+}
+package fr.mternez.echopulse.core.common.event;
+
+import fr.mternez.echopulse.core.common.domain.model.ChannelId;
+import fr.mternez.echopulse.core.common.domain.model.ServerId;
+
+public record ChannelCreated(ChannelId id, ServerId serverId, String name) { }
+package fr.mternez.echopulse.core.common.event;
+
+import fr.mternez.echopulse.core.common.domain.model.Channel;
+import fr.mternez.echopulse.core.common.domain.model.ChannelId;
+import fr.mternez.echopulse.core.common.domain.model.ServerId;
+
+public record ChannelDeleted(ChannelId id, ServerId serverId, String name) { }
+package fr.mternez.echopulse.core.common.event;
+
+import fr.mternez.echopulse.core.chat.domain.PostMessage;
+
+public record PostSent(PostMessage postMessage) {}
+package fr.mternez.echopulse.core.common.event;
+
+import fr.mternez.echopulse.core.common.domain.model.ServerId;
+import fr.mternez.echopulse.core.common.domain.model.UserId;
+
+import java.util.Set;
+
+public record UserJoinedServer(UserId userId, ServerId serverId, String username, String displayName, Set<UserRole> roles) { }
+package fr.mternez.echopulse.core.common.event;
+
+import fr.mternez.echopulse.core.common.domain.model.ServerId;
+import fr.mternez.echopulse.core.common.domain.model.UserId;
+
+public record UserLeftServer(UserId userId, ServerId serverId) { }
+package fr.mternez.echopulse.core.common.event;
+
+import fr.mternez.echopulse.core.common.domain.model.Permission;
+
+import java.util.Set;
+
+public record UserRole(String name, String description, String color, Set<Permission> permissions) {
+}
+package fr.mternez.echopulse.core.server.application.command;
+
+import fr.mternez.echopulse.core.common.application.InvocationSource;
+import fr.mternez.echopulse.core.common.domain.model.ServerId;
+import fr.mternez.echopulse.core.common.domain.model.UserId;
+
+public record AssignRoleCmd(InvocationSource invocationSource, ServerId serverId, UserId targetUser, String roleName) implements ServerCommand {
+}
+package fr.mternez.echopulse.core.server.application.command;
+
+import fr.mternez.echopulse.core.common.application.InvocationSource;
+import fr.mternez.echopulse.core.common.domain.model.ServerId;
+
+public record CreateChannelCmd(InvocationSource invocationSource, ServerId serverId, String name) implements ServerCommand {
+}
+package fr.mternez.echopulse.core.server.application.command;
+
+import fr.mternez.echopulse.core.common.application.InvocationSource;
+import fr.mternez.echopulse.core.common.domain.model.ServerId;
+import fr.mternez.echopulse.core.common.domain.model.UserId;
+
+public record CreateMembershipCmd(
+        InvocationSource invocationSource,
+        ServerId serverId,
+        UserId targetUserId
+) implements ServerCommand { }
+package fr.mternez.echopulse.core.server.application.command;
+
+import fr.mternez.echopulse.core.common.application.InvocationSource;
+import fr.mternez.echopulse.core.common.domain.model.Permission;
+import fr.mternez.echopulse.core.common.domain.model.ServerId;
+
+import java.util.Set;
+
+public record CreateRoleCmd(InvocationSource invocationSource, ServerId serverId, String name, Set<Permission> permissions) implements ServerCommand {
+}
+package fr.mternez.echopulse.core.server.application.command;
+
+import fr.mternez.echopulse.core.common.application.InvocationSource;
+
+public record CreateServerCmd(
+        InvocationSource invocationSource,
+        String name
+) {}
+package fr.mternez.echopulse.core.server.application.command;
+
+import fr.mternez.echopulse.core.common.application.InvocationSource;
+
+public record CreateUserCmd(InvocationSource invocationSource, String username) {}
+package fr.mternez.echopulse.core.server.application.command;
+
+import fr.mternez.echopulse.core.common.application.InvocationSource;
+import fr.mternez.echopulse.core.common.domain.model.ChannelId;
+import fr.mternez.echopulse.core.common.domain.model.ServerId;
+
+public record DeleteChannelCmd(InvocationSource invocationSource, ServerId serverId, ChannelId channelId) implements ServerCommand {
+}
+package fr.mternez.echopulse.core.server.application.command;
+
+import fr.mternez.echopulse.core.common.application.InvocationSource;
+import fr.mternez.echopulse.core.common.domain.model.ServerId;
+import fr.mternez.echopulse.core.common.domain.model.UserId;
+
+public record DeleteMembershipCmd(InvocationSource invocationSource, ServerId serverId, UserId userId) implements ServerCommand {
+}
+package fr.mternez.echopulse.core.server.application.command;
+
+import fr.mternez.echopulse.core.common.application.InvocationSource;
+import fr.mternez.echopulse.core.common.domain.model.ServerId;
+
+public record DeleteRoleCmd(InvocationSource invocationSource, ServerId serverId, String name) implements ServerCommand {
+}
+package fr.mternez.echopulse.core.server.application.command;
+
+import fr.mternez.echopulse.core.common.application.InvocationSource;
+import fr.mternez.echopulse.core.common.domain.model.ServerId;
+
+public record DeleteServerCmd(InvocationSource invocationSource, ServerId serverId) implements ServerCommand {}
+package fr.mternez.echopulse.core.server.application.command;
+
+import fr.mternez.echopulse.core.common.application.InvocationSource;
+import fr.mternez.echopulse.core.common.domain.model.ServerId;
+
+public interface ServerCommand {
+    InvocationSource invocationSource();
+    ServerId serverId();
+}
+package fr.mternez.echopulse.core.server.application.command;
+
+import fr.mternez.echopulse.core.common.application.InvocationSource;
+import fr.mternez.echopulse.core.common.domain.model.ServerId;
+import fr.mternez.echopulse.core.common.domain.model.UserId;
+
+public record UnassignRoleCmd(InvocationSource invocationSource, ServerId serverId, UserId targetUserId, String roleName) implements ServerCommand {
+}
+package fr.mternez.echopulse.core.server.application.service;
+
+import fr.mternez.echopulse.core.common.domain.error.ChannelNotFound;
+import fr.mternez.echopulse.core.common.domain.error.PersistenceException;
+import fr.mternez.echopulse.core.common.domain.error.ServerNotFound;
+import fr.mternez.echopulse.core.common.domain.model.Channel;
+import fr.mternez.echopulse.core.common.event.ChannelCreated;
+import fr.mternez.echopulse.core.common.event.ChannelDeleted;
+import fr.mternez.echopulse.core.server.application.command.CreateChannelCmd;
+import fr.mternez.echopulse.core.server.application.command.DeleteChannelCmd;
+import fr.mternez.echopulse.core.server.port.in.ChannelCommandService;
+import fr.mternez.echopulse.core.server.port.out.ChannelRepository;
+import fr.mternez.echopulse.core.server.port.out.EventPublisher;
+import fr.mternez.echopulse.core.server.port.out.ServerRepository;
+
+public class ChannelCommandServiceImpl implements ChannelCommandService {
+
+    private final ChannelRepository channelRepository;
+    private final ServerRepository serverRepository;
+    private final EventPublisher eventPublisher;
+
+    public ChannelCommandServiceImpl(
+            final ChannelRepository channelRepository,
+            final ServerRepository serverRepository,
+            final EventPublisher eventPublisher
+    ) {
+        this.channelRepository = channelRepository;
+        this.serverRepository = serverRepository;
+        this.eventPublisher = eventPublisher;
+    }
+
+    @Override
+    public Channel execute(CreateChannelCmd cmd) throws PersistenceException, ServerNotFound {
+
+        if (!this.serverRepository.existsById(cmd.serverId())) {
+            throw new ServerNotFound(cmd.serverId());
+        }
+
+        // Generate and save new channel
+        final Channel savedChannel = this.channelRepository.persistNew(new Channel(cmd.serverId(), cmd.name()));
+
+        // Create and publish creation event
+        this.eventPublisher.publish(new ChannelCreated(savedChannel.getId(), cmd.serverId(), savedChannel.getName()));
+
+        return savedChannel;
+    }
+
+    @Override
+    public void execute(DeleteChannelCmd cmd) throws ChannelNotFound, PersistenceException {
+
+        // Find channel
+        final Channel channel = this.channelRepository.findById(cmd.channelId())
+                .orElseThrow(() -> new ChannelNotFound(cmd.channelId()));
+
+        // Delete channel
+        try {
+            this.channelRepository.delete(channel);
+            // Publish deletion event
+            this.eventPublisher.publish(new ChannelDeleted(channel.getId(), channel.getServerId(), channel.getName()));
+        } catch (final Exception e) {
+            throw new PersistenceException(Channel.class, e);
+        }
+    }
+}
+package fr.mternez.echopulse.core.server.application.service;
+
+import fr.mternez.echopulse.core.common.domain.error.PermissionDenied;
+import fr.mternez.echopulse.core.common.domain.model.Permission;
+import fr.mternez.echopulse.core.common.domain.model.ServerId;
+import fr.mternez.echopulse.core.common.domain.model.User;
+import fr.mternez.echopulse.core.server.application.command.*;
+import fr.mternez.echopulse.core.server.port.in.CommandAuthorizationService;
+
+import static java.lang.String.format;
+
+public class CommandAuthorizationServiceImpl implements CommandAuthorizationService {
+
+    @Override
+    public void authorize(final CreateUserCmd cmd) throws PermissionDenied {
+        ;
+    }
+
+    @Override
+    public void authorize(final CreateServerCmd cmd) throws PermissionDenied {
+        ;
+    }
+
+    @Override
+    public void authorize(final DeleteServerCmd cmd) throws PermissionDenied {
+        this.assertPermission(cmd, Permission.DELETE_SERVER);
+    }
+
+    @Override
+    public void authorize(final CreateChannelCmd cmd) throws PermissionDenied {
+        this.assertPermission(cmd, Permission.MANAGE_CHANNELS);
+    }
+
+    @Override
+    public void authorize(final DeleteChannelCmd cmd) throws PermissionDenied {
+        this.assertPermission(cmd, Permission.MANAGE_CHANNELS);
+    }
+
+    @Override
+    public void authorize(final CreateMembershipCmd cmd) throws PermissionDenied {
+        this.assertPermission(cmd, Permission.MANAGE_MEMBERS);
+    }
+
+    @Override
+    public void authorize(final DeleteMembershipCmd cmd) throws PermissionDenied {
+        this.assertPermission(cmd, Permission.MANAGE_MEMBERS);
+    }
+
+    @Override
+    public void authorize(final CreateRoleCmd cmd) throws PermissionDenied {
+        this.assertPermission(cmd, Permission.MANAGE_ROLES);
+    }
+
+    @Override
+    public void authorize(final DeleteRoleCmd cmd) throws PermissionDenied {
+        this.assertPermission(cmd, Permission.MANAGE_ROLES);
+    }
+
+    @Override
+    public void authorize(final AssignRoleCmd cmd) throws PermissionDenied {
+        this.assertPermission(cmd, Permission.MANAGE_MEMBERS);
+    }
+
+    @Override
+    public void authorize(final UnassignRoleCmd cmd) throws PermissionDenied {
+        this.assertPermission(cmd, Permission.MANAGE_MEMBERS);
+    }
+
+    private boolean isMember(final User user, final ServerId serverId) {
+        return user.isMemberOf(serverId);
+    }
+
+    private boolean hasPermission(final User user, final ServerId serverId, final Permission permission) {
+        return user.getMembership(serverId).getRoles().stream().anyMatch(r -> r.getPermissions().contains(permission));
+    }
+
+    private void assertPermission(final ServerCommand cmd, final Permission permission) {
+        final User user = cmd.invocationSource().user();
+        final ServerId serverId = cmd.serverId();
+        final boolean isMember = this.isMember(user, serverId);
+        if(!isMember) {
+            throw new PermissionDenied(user.getId(), serverId, format("User '%s' is not a member of server '%s'", user.getId().getValue(), serverId.getValue()));
+        }
+        if(!this.hasPermission(user, serverId, permission)) {
+            throw new PermissionDenied(user.getId(), serverId, permission);
+        }
+    }
+}
+package fr.mternez.echopulse.core.server.application.service;
+
+import fr.mternez.echopulse.core.common.domain.error.*;
+import fr.mternez.echopulse.core.common.domain.model.*;
+import fr.mternez.echopulse.core.common.event.UserJoinedServer;
+import fr.mternez.echopulse.core.common.event.UserLeftServer;
+import fr.mternez.echopulse.core.common.event.UserRole;
+import fr.mternez.echopulse.core.server.application.command.CreateMembershipCmd;
+import fr.mternez.echopulse.core.server.application.command.DeleteMembershipCmd;
+import fr.mternez.echopulse.core.server.port.in.MembershipCommandService;
+import fr.mternez.echopulse.core.server.port.out.EventPublisher;
+import fr.mternez.echopulse.core.server.port.out.MembershipRepository;
+import fr.mternez.echopulse.core.server.port.out.ServerRepository;
+import fr.mternez.echopulse.core.server.port.out.UserRepository;
+
+import java.util.Set;
+import java.util.logging.Logger;
+import java.util.stream.Collectors;
+
+public class MembershipCommandServiceImpl implements MembershipCommandService {
+
+    private static final Logger logger = Logger.getLogger(MembershipCommandServiceImpl.class.getName());
+
+    private final UserRepository userRepository;
+    private final MembershipRepository membershipRepository;
+    private final ServerRepository serverRepository;
+    private final EventPublisher eventPublisher;
+
+    public MembershipCommandServiceImpl(
+            final UserRepository userRepository,
+            final MembershipRepository membershipRepository,
+            final ServerRepository serverRepository,
+            final EventPublisher eventPublisher
+    ) {
+        this.userRepository = userRepository;
+        this.membershipRepository = membershipRepository;
+        this.serverRepository = serverRepository;
+        this.eventPublisher = eventPublisher;
+    }
+
+    @Override
+    public Membership execute(final CreateMembershipCmd cmd) throws UserNotFound, ServerNotFound, RoleNotFound, PersistenceException {
+
+        final ServerId serverId = cmd.serverId();
+        final UserId userId = cmd.targetUserId();
+
+        // Find user
+        final User user = this.userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFound(userId));
+
+        // Find server default role
+        final Role defaultServerRole = this.serverRepository.findDefaultRole(serverId).orElseThrow(
+                () -> new RoleNotFound(serverId)
+        );
+
+        // Create and save membership
+        final Membership savedMembership = this.membershipRepository.persistNew(new Membership(serverId, user.getId(), Set.of(defaultServerRole)));
+
+        // Add membership to user and save
+        user.addMembership(savedMembership);
+        this.userRepository.persistNew(user);
+
+        // Publish event
+        this.eventPublisher.publish(new UserJoinedServer(
+                userId,
+                serverId,
+                user.getUsername(),
+                user.getDisplayName(),
+                savedMembership.getRoles().stream().map(r -> new UserRole(r.getName(), r.getDescription(), r.getColor(), r.getPermissions())).collect(Collectors.toSet())
+        ));
+
+        return savedMembership;
+    }
+
+    @Override
+    public void execute(final DeleteMembershipCmd cmd) throws MembershipNotFound, PersistenceException {
+
+        final ServerId serverId = cmd.serverId();
+        final UserId userId = cmd.userId();
+
+        // Delete membership
+        this.membershipRepository.deleteByServerIdUserId(cmd.serverId(), cmd.userId());
+
+        // Publish event
+        this.eventPublisher.publish(new UserLeftServer(
+                userId,
+                serverId
+        ));
+    }
+}
+package fr.mternez.echopulse.core.server.application.service;
+
+import fr.mternez.echopulse.core.common.domain.error.PersistenceException;
+import fr.mternez.echopulse.core.common.domain.error.RoleNotFound;
+import fr.mternez.echopulse.core.common.domain.error.ServerNotFound;
+import fr.mternez.echopulse.core.common.domain.model.Permission;
+import fr.mternez.echopulse.core.common.domain.model.Role;
+import fr.mternez.echopulse.core.common.domain.model.Server;
+import fr.mternez.echopulse.core.common.domain.model.ServerId;
+import fr.mternez.echopulse.core.server.application.command.CreateRoleCmd;
+import fr.mternez.echopulse.core.server.application.command.DeleteRoleCmd;
+import fr.mternez.echopulse.core.server.port.in.RoleCommandService;
+import fr.mternez.echopulse.core.server.port.out.ServerRepository;
+
+public class RoleCommandServiceImpl implements RoleCommandService {
+
+    private final ServerRepository serverRepository;
+
+    public RoleCommandServiceImpl(
+            final ServerRepository serverRepository
+    ) {
+        this.serverRepository = serverRepository;
+    }
+
+    @Override
+    public Role execute(final CreateRoleCmd cmd) throws ServerNotFound, PersistenceException {
+
+        final ServerId serverId = cmd.serverId();
+        final String roleName = cmd.name();
+
+        final Server server = this.serverRepository.findById(serverId)
+                .orElseThrow(() -> new ServerNotFound(serverId));
+
+        final Role role = new Role(roleName, cmd.permissions().toArray(new Permission[0]));
+
+        server.addRole(role);
+
+        this.serverRepository.update(server);
+
+        return role;
+    }
+
+    @Override
+    public void execute(DeleteRoleCmd cmd) throws ServerNotFound, RoleNotFound, PersistenceException {
+
+        final ServerId serverId = cmd.serverId();
+        final String roleName = cmd.name();
+
+        final Server server = this.serverRepository.findById(serverId)
+                .orElseThrow(() -> new ServerNotFound(serverId));
+
+        server.removeRole(roleName);
+
+        this.serverRepository.update(server);
+    }
+}
+package fr.mternez.echopulse.core.server.application.service;
+
+import fr.mternez.echopulse.core.common.domain.error.ServerNotFound;
+import fr.mternez.echopulse.core.common.domain.error.UserNotFound;
+import fr.mternez.echopulse.core.common.domain.model.*;
+import fr.mternez.echopulse.core.server.application.command.CreateServerCmd;
+import fr.mternez.echopulse.core.server.application.command.DeleteServerCmd;
+import fr.mternez.echopulse.core.common.domain.error.PersistenceException;
+import fr.mternez.echopulse.core.server.port.in.ServerCommandService;
+import fr.mternez.echopulse.core.server.port.out.ChannelRepository;
+import fr.mternez.echopulse.core.server.port.out.MembershipRepository;
+import fr.mternez.echopulse.core.server.port.out.ServerRepository;
+import fr.mternez.echopulse.core.server.port.out.UserRepository;
+
+import java.util.logging.Logger;
+
+public class ServerCommandServiceImpl implements ServerCommandService {
+
+    private static final Logger logger = Logger.getLogger(ServerCommandServiceImpl.class.getName());
+
+    private final UserRepository userRepository;
+    private final ServerRepository serverRepository;
+    private final MembershipRepository membershipRepository;
+    private final ChannelRepository channelRepository;
+
+    public ServerCommandServiceImpl(
+            final UserRepository userRepository,
+            final ServerRepository serverRepository,
+            final MembershipRepository membershipRepository,
+            final ChannelRepository channelRepository
+    ) {
+        this.userRepository = userRepository;
+        this.serverRepository = serverRepository;
+        this.membershipRepository = membershipRepository;
+        this.channelRepository = channelRepository;
+    }
+
+    @Override
+    public Server execute(final CreateServerCmd cmd) throws UserNotFound, PersistenceException {
+
+        // Fetch server owner
+        final User owner = this.userRepository.findById(cmd.invocationSource().user().getId())
+                .orElseThrow(() -> new UserNotFound(cmd.invocationSource().user().getId()));
+
+        // Create server
+        final Server server = new Server(new ServerId(), cmd.name(), owner);
+
+        // Create owner role
+        final Role ownerRole = new Role(
+                "OWNER",
+                Permission.MANAGE_CHANNELS,
+                Permission.MANAGE_MEMBERS,
+                Permission.MANAGE_ROLES,
+                Permission.DELETE_SERVER
+        );
+        server.addRole(ownerRole);
+
+        // Create default role
+        final Role defaultRole = new Role(
+                "USER"
+        );
+        server.addRole(defaultRole);
+        server.setDefaultRole(defaultRole);
+
+        final Server savedServer = this.serverRepository.persistNew(server);
+
+        // Add owner membership
+        owner.addMembership(new Membership(savedServer.getId(), owner.getId(), ownerRole, defaultRole));
+
+        // Save owner
+        this.userRepository.update(owner);
+
+        return savedServer;
+    }
+
+    @Override
+    public void execute(final DeleteServerCmd cmd) throws ServerNotFound, PersistenceException {
+
+        // Delete all memberships
+        this.membershipRepository.deleteAllByServerId(cmd.serverId());
+
+        // Delete all channels
+        this.channelRepository.deleteAllByServerId(cmd.serverId());
+
+        // Delete server
+        this.serverRepository.deleteById(cmd.serverId());
+    }
+}
+package fr.mternez.echopulse.core.server.application.service;
+
+import fr.mternez.echopulse.core.common.domain.model.User;
+import fr.mternez.echopulse.core.common.domain.model.UserId;
+import fr.mternez.echopulse.core.server.application.command.CreateUserCmd;
+import fr.mternez.echopulse.core.common.domain.error.PersistenceException;
+import fr.mternez.echopulse.core.server.port.in.UserCommandService;
+import fr.mternez.echopulse.core.server.port.out.UserRepository;
+
+import java.util.logging.Logger;
+
+public class UserCommandServiceImpl implements UserCommandService {
+
+    private static final Logger logger = Logger.getLogger(UserCommandServiceImpl.class.getName());
+
+    private final UserRepository userRepository;
+
+    public UserCommandServiceImpl(
+            final UserRepository userRepository
+    ) {
+        this.userRepository = userRepository;
+    }
+
+    @Override
+    public User execute(final CreateUserCmd cmd) throws PersistenceException {
+
+        return this.userRepository.persistNew(new User(new UserId(), cmd.username()));
+    }
+}
+package fr.mternez.echopulse.core.server.port.in;
+
+import fr.mternez.echopulse.core.server.application.command.CreateChannelCmd;
+import fr.mternez.echopulse.core.server.application.command.DeleteChannelCmd;
+import fr.mternez.echopulse.core.common.domain.error.ChannelNotFound;
+import fr.mternez.echopulse.core.common.domain.error.PersistenceException;
+import fr.mternez.echopulse.core.common.domain.error.ServerNotFound;
+import fr.mternez.echopulse.core.common.domain.model.Channel;
+
+public interface ChannelCommandService {
+
+    Channel execute(CreateChannelCmd cmd) throws PersistenceException, ServerNotFound;
+
+    void execute(DeleteChannelCmd cmd) throws ChannelNotFound, PersistenceException;
+}
+package fr.mternez.echopulse.core.server.port. in;
+
+import fr.mternez.echopulse.core.common.domain.error.PermissionDenied;
+import fr.mternez.echopulse.core.server.application.command.*;
+
+public interface CommandAuthorizationService {
+    void authorize(CreateUserCmd cmd) throws PermissionDenied;
+    void authorize(CreateServerCmd cmd) throws PermissionDenied;
+    void authorize(DeleteServerCmd cmd) throws PermissionDenied;
+    void authorize(CreateChannelCmd cmd) throws PermissionDenied;
+    void authorize(DeleteChannelCmd cmd) throws PermissionDenied;
+    void authorize(CreateMembershipCmd cmd) throws PermissionDenied;
+    void authorize(DeleteMembershipCmd cmd) throws PermissionDenied;
+    void authorize(CreateRoleCmd cmd) throws PermissionDenied;
+    void authorize(DeleteRoleCmd cmd) throws PermissionDenied;
+    void authorize(AssignRoleCmd cmd) throws PermissionDenied;
+    void authorize(UnassignRoleCmd cmd) throws PermissionDenied;
+}
+package fr.mternez.echopulse.core.server.port.in;
+
+import fr.mternez.echopulse.core.common.domain.error.*;
+import fr.mternez.echopulse.core.common.domain.model.Membership;
+import fr.mternez.echopulse.core.server.application.command.CreateMembershipCmd;
+import fr.mternez.echopulse.core.server.application.command.DeleteMembershipCmd;
+
+public interface MembershipCommandService {
+
+    /**
+     * Adds a user to a server.
+     * @param cmd
+     */
+    Membership execute(CreateMembershipCmd cmd) throws UserNotFound, ServerNotFound, RoleNotFound, PersistenceException;
+
+    /**
+     * Removes a user from a server.
+     * @param cmd
+     */
+    void execute(DeleteMembershipCmd cmd) throws MembershipNotFound, PersistenceException;
+}
+package fr.mternez.echopulse.core.server.port.in;
+
+import fr.mternez.echopulse.core.common.domain.error.PersistenceException;
+import fr.mternez.echopulse.core.common.domain.error.RoleNotFound;
+import fr.mternez.echopulse.core.common.domain.error.ServerNotFound;
+import fr.mternez.echopulse.core.common.domain.model.Role;
+import fr.mternez.echopulse.core.server.application.command.CreateRoleCmd;
+import fr.mternez.echopulse.core.server.application.command.DeleteRoleCmd;
+
+public interface RoleCommandService {
+
+    Role execute(CreateRoleCmd cmd) throws ServerNotFound, PersistenceException;
+
+    void execute(DeleteRoleCmd cmd) throws ServerNotFound, RoleNotFound, PersistenceException;
+}
+package fr.mternez.echopulse.core.server.port.in;
+
+import fr.mternez.echopulse.core.common.domain.error.ServerNotFound;
+import fr.mternez.echopulse.core.server.application.command.DeleteServerCmd;
+import fr.mternez.echopulse.core.common.domain.error.PersistenceException;
+import fr.mternez.echopulse.core.server.application.command.CreateServerCmd;
+import fr.mternez.echopulse.core.common.domain.error.UserNotFound;
+import fr.mternez.echopulse.core.common.domain.model.Server;
+
+public interface ServerCommandService {
+
+    Server execute(CreateServerCmd cmd) throws UserNotFound, PersistenceException;
+
+    void execute(DeleteServerCmd cmd) throws ServerNotFound, PersistenceException;
+}
+package fr.mternez.echopulse.core.server.port.in;
+
+import fr.mternez.echopulse.core.common.domain.error.PersistenceException;
+import fr.mternez.echopulse.core.server.application.command.CreateUserCmd;
+import fr.mternez.echopulse.core.common.domain.model.User;
+
+public interface UserCommandService {
+
+    /**
+     * Creates a user.
+     * @param cmd
+     * @return
+     */
+    User execute(CreateUserCmd cmd) throws PersistenceException;
+}
+package fr.mternez.echopulse.core.server.port.out;
+
+import fr.mternez.echopulse.core.common.domain.model.Channel;
+import fr.mternez.echopulse.core.common.domain.model.ChannelId;
+import fr.mternez.echopulse.core.common.domain.model.ServerId;
+import fr.mternez.echopulse.core.common.domain.error.PersistenceException;
+
+import java.util.Optional;
+import java.util.Set;
+
+public interface ChannelRepository {
+
+    Channel persistNew(Channel channel) throws PersistenceException;
+
+    void delete(Channel channel);
+
+    Optional<Channel> findById(ChannelId channelId);
+
+    void deleteAllByServerId(ServerId serverId);
+}
+package fr.mternez.echopulse.core.server.port.out;
+
+import fr.mternez.echopulse.core.common.event.ChannelCreated;
+import fr.mternez.echopulse.core.common.event.ChannelDeleted;
+import fr.mternez.echopulse.core.common.event.UserJoinedServer;
+import fr.mternez.echopulse.core.common.event.UserLeftServer;
+
+public interface EventPublisher {
+    void publish(ChannelCreated event);
+    void publish(ChannelDeleted event);
+    void publish(UserJoinedServer event);
+    void publish(UserLeftServer event);
+}
+package fr.mternez.echopulse.core.server.port.out;
+
+import fr.mternez.echopulse.core.common.domain.model.Membership;
+import fr.mternez.echopulse.core.common.domain.model.ServerId;
+import fr.mternez.echopulse.core.common.domain.model.UserId;
+import fr.mternez.echopulse.core.common.domain.error.PersistenceException;
+
+import java.util.Set;
+
+public interface MembershipRepository {
+
+    Membership persistNew(Membership membership) throws PersistenceException;
+
+    void deleteByServerIdUserId(ServerId serverId, UserId userId) throws PersistenceException;
+
+    void deleteAllByServerId(ServerId serverId);
+}
+package fr.mternez.echopulse.core.server.port.out;
+
+import fr.mternez.echopulse.core.common.domain.model.Role;
+import fr.mternez.echopulse.core.common.domain.model.Server;
+import fr.mternez.echopulse.core.common.domain.model.ServerId;
+import fr.mternez.echopulse.core.common.domain.error.PersistenceException;
+
+import java.util.Optional;
+
+public interface ServerRepository {
+
+    Server persistNew(Server server) throws PersistenceException;
+
+    Server update(Server server) throws PersistenceException;
+
+    Optional<Server> findById(ServerId serverId);
+
+    Optional<Role> findDefaultRole(ServerId serverId);
+
+    boolean existsById(ServerId serverId);
+
+    void deleteById(ServerId serverId);
+}
+package fr.mternez.echopulse.core.server.port.out;
+
+import fr.mternez.echopulse.core.common.domain.model.User;
+import fr.mternez.echopulse.core.common.domain.model.UserId;
+import fr.mternez.echopulse.core.common.domain.error.PersistenceException;
+
+import java.util.Optional;
+
+public interface UserRepository {
+
+    User persistNew(User user) throws PersistenceException;
+
+    User update(User user) throws PersistenceException;
+
+    Optional<User> findById(UserId userId);
+}
