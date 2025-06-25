@@ -21,6 +21,14 @@ Le front-end est volontairement minimal. Il ne sert qu'à illustrer les fonction
 
 Le cœur du projet réside entièrement dans l’**infrastructure back-end distribuée**.
 
+## Lancement
+
+Aucun packaging n'a été mis en place. 
+Pour pouvoir tester le projet, un docker compose se trouve dans le dossier **docker** qui permet d'orchestrer le lancement des dépendances (kafka, redis, bdd, zookeeper).
+Une fois les dépendances lancées il faut aussi utiliser les configuration json dans **keycloak-exports** pour créer le realm et les clients (notamment pour le front-end).
+Ensuite il faut lancer les deux services **chat** et **server**.
+Les données keycloak sont petsistées ainsi que les données kafka mais les données des deux services **chat** et **server** sont vidées à chaque lancement.
+
 ---
 
 ## Architecture
@@ -33,23 +41,8 @@ Le front consomme des APIs REST ou se connecte aux WebSocket.
 ### Vue d’ensemble
 
 Chaque microservice est indépendant, isolé par sa propre base de données et communique via des **messages Kafka** pour garantir le découplage.  
-Le front-end communique avec le système via REST et WebSocket (STOMP).
-
-        +-----------------+          Kafka          +----------------+
-        |  Server Service |  <------------------->  |  Chat Service  |
-        |   (REST + JPA)  |                         | (WebSocket + Redis) |
-        +--------+--------+                         +--------+-------+
-                 ^                                             ^
-                 |                                             |
-                 | REST (HTTP)                        WebSocket (STOMP)
-                 |                                             |
-          +------+-------+                            +--------+--------+
-          |   Front-End   | <-----------------------> |      Client      |
-          +--------------+                            +------------------+
-
 
 ---
-
 
 ### Services
 
