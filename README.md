@@ -27,7 +27,9 @@ Aucun packaging n'a été mis en place.
 Pour pouvoir tester le projet, un docker compose se trouve dans le dossier **docker** qui permet d'orchestrer le lancement des dépendances (kafka, redis, bdd, zookeeper).
 Une fois les dépendances lancées il faut aussi utiliser les configuration json dans **keycloak-exports** pour créer le realm et les clients (notamment pour le front-end).
 Ensuite il faut lancer les deux services **chat** et **server**.
-Les données keycloak sont petsistées ainsi que les données kafka mais les données des deux services **chat** et **server** sont vidées à chaque lancement.
+Les données keycloak sont persistées ainsi que les données kafka mais les données des deux services **chat** et **server** sont vidées à chaque lancement.
+
+La gestion des utilisateurs se faisant via keycloak, il faut créer à la main un utilisateur depuis son interface graphiqur (http://localhost:18080).
 
 ---
 
