@@ -112,15 +112,14 @@ Chaque microservice est indépendant, isolé par sa propre base de données et c
 
 ### Inexistant
 
-- Tests (unitaires, intégration, E2E) sur les microservices
-- Monitoring, logs structurés, traçabilité
-- Persistence durable des messages (uniquement sur Redis pour l'instant)
+- Tests sur les microservices
+- Monitoring, logs, traçabilité
+- Persistence durable des messages
 - Contrats OpenAPI / Swagger
+- Packaging
 
 ### Imparfait
 
-- Environnements et secrets codés en dur (`localhost`, `admin`, `postgres`)
+- Environnements et secrets codés en durs
 - Front-end hors conteneur
-- Auth Keycloak sans mapping de rôles/permissions
-- Aucune distinction de rôles dans Spring Security
 - Redis sans TTL
