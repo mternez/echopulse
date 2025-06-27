@@ -6,11 +6,11 @@
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
 		<version>3.4.5</version>
-		<relativePath/> <!-- lookup parent from repository -->
+		<relativePath/>
 	</parent>
 	<groupId>fr.mternez.echopulse</groupId>
 	<artifactId>server</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>1.0.0-SNAPSHOT</version>
 	<name>server-service</name>
 	<description>Microservice for CRUD operations on servers and channels</description>
 	<url/>
@@ -27,7 +27,7 @@
 		<url/>
 	</scm>
 	<properties>
-		<core.version>1.0-SNAPSHOT</core.version>
+		<core.version>1.0.0-SNAPSHOT</core.version>
 		<java.version>17</java.version>
 		<org.mapstruct.version>1.6.3</org.mapstruct.version>
 		<maven.compiler.plugin.version>3.8.1</maven.compiler.plugin.version>
@@ -100,6 +100,9 @@
 				<artifactId>spring-boot-maven-plugin</artifactId>
 				<configuration>
 					<mainClass>fr.mternez.echopulse.server.ServerServiceApplication</mainClass>
+					<image>
+						<name>echopulse-${project.artifactId}:${project.version}</name>
+					</image>
 				</configuration>
 			</plugin>
 			<plugin>

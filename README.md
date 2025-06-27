@@ -1,48 +1,144 @@
 # EchoPulse - Distributed Discord Clone
 
-**EchoPulse** est un clone minimaliste distribué de Discord conçu comme démonstrateur technique backend.
+**EchoPulse** is a distributed minimalist clone of Discord designed as a backend technical demonstrator.
 
-## Avertissement
+## Disclaimer
 
-Ce projet sert exclusivement à :
+The sole purpose of this project is to:
 
-- pratiquer la **conception hexagonale** et la séparation claire des responsabilités,
-- manipuler **Kafka**, **Redis**, **WebSocket STOMP** et **OAuth2** dans un contexte distribué,
+- practice **hexagonal architecture** and clear separation of concerns,
+- work with **Kafka** in a distributed context.
 
-Aucune attention n’a été portée à l’industrialisation, à la sécurité avancée ou à la couverture de test.
+No attention has been paid to industrialization, advanced security, or test coverage.
 
-## Avertissement sur le front-end
+## Front-End Disclaimer
 
-Le front-end est volontairement minimal. Il ne sert qu'à illustrer les fonctionnalités côté client :
+The front-end is intentionally minimal and only serves to illustrate client-side features:
+The core of the project lies entirely in the **distributed backend infrastructure**.
 
-- aucune attention portée à l’UX, la qualité du code ou la sécurité ;
-- aucune logique critique n’est implémentée ;
-- aucune maintenance prévue.
+---
 
-Le cœur du projet réside entièrement dans l’**infrastructure back-end distribuée**.
+## Build & Run
 
-## Lancement
+### Pre-requisites 
 
-Aucun packaging n'a été mis en place. 
-Pour pouvoir tester le projet, un docker compose se trouve dans le dossier **docker** qui permet d'orchestrer le lancement des dépendances (kafka, redis, bdd, zookeeper).
-Une fois les dépendances lancées il faut aussi utiliser les configuration json dans **keycloak-exports** pour créer le realm et les clients (notamment pour le front-end).
-Ensuite il faut lancer les deux services **chat** et **server**.
-Les données keycloak sont persistées ainsi que les données kafka mais les données des deux services **chat** et **server** sont vidées à chaque lancement.
+The following ports are needed :
 
-La gestion des utilisateurs se faisant via keycloak, il faut créer à la main un utilisateur depuis son interface graphiqur (http://localhost:18080).
+| Host Port | Related Service       | Description                              |
+| --------- | --------------------- |------------------------------------------|
+| `8181`    | echopulse-chat        | server port for the chat service         |
+| `8282`    | echopulse-server      | server port for the server service       |
+| `18080`   | keycloak-service      | Keycloak                                 |
+| `9000`    | kafdrop               | Kafdrop web UI (Not necessary for usage) |
+| `9092`    | kafka                 | Kafka listener exposed to the host       |
+| `29092`   | kafka                 | Kafka internal listener                  |
+| `2181`    | zookeeper             | Zookeeper default port                   |
+| `5432`    | server-service-db     | PostgreSQL for the server service        |
+| `5433`    | keycloak-service-db   | PostgreSQL for Keycloak                  |
+| `6379`    | chat-service-redis-db | Redis used by the chat service           |
+
+### Build **core**
+
+The project **core** contains the business logic for both **server** and **chat** microservices and must be built first.
+The easiest way to do this would be to install it in maven's dependency tree with the following command :
+````
+    mvn clean install
+````
+
+### Buid services and run keycloak as container
+
+Both **chat** and **server** require being able to send requests to keycloak (for authorization purposes).
+It is easier to run the services locally and run keycloak as a container.
+To run the services locally, the following command must be executed in each project :
+
+````
+    mvn clean spring-boot:run
+````
+
+## Build services as images
+
+Both **chat** and **server** services have the spring boot maven plugin their pom.xml files.
+To build their images, the following command must be executed in each project :
+````
+    mvn clean spring-boot:build-image
+````
+The images resulting from this have the following names :
+- echopulse-server
+- echopulse-chat
+
+An example docker compose file :
+````
+  echopulse-server:
+    container_name: echopulse-server
+    image: echopulse-server:1.0.0-SNAPSHOT
+    ports:
+      - "8282:8282"
+    depends_on:
+      - keycloak-service
+      - kafka
+      - server-service-db
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://server-service-db:5432/serverdb
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: "localhost:29092"
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://localhost:18080/realms/echopulse
+      LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_SECURITY: DEBUG
+  echopulse-chat:
+    container_name: echopulse-chat
+    image: echopulse-chat:1.0.0-SNAPSHOT
+    ports:
+      - "8181:8181"
+    depends_on:
+      - keycloak-service
+      - kafka
+      - chat-service-redis-db
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://chat-service-redis-db:5432/serverdb
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: "localhost:29092"
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://localhost:18080/realms/echopulse
+````
+
+### Run docker compose
+
+Since the docker images for the services have been built, you can run the docker compose file in the folder **docker** with the following command
+````
+    docker compose run -d
+````
+
+### Create keycloak realm
+
+Usin keycloak's UI (**http://localhost:18080**) and the configuration files provided in **keycloak-exports**, create the realm and the clients.
+
+### Run the front-end
+
+Since the front-end is purely for demonstration purposes, you can simply run it locally by executing the following command in the folder **echo-pulse-front**:
+````
+    npm install
+    npm start
+````
+
+### Create a keycloak user
+
+Using keycloak's UI (**http://localhost:18080**) create a user with a password.
+
+
+The environment is now up and running, you can access the app using **http://localhost:4200**.
+
+### Kafdrop
+
+Kafdrop is also provided in the docker compose and available at **http://localhost:9000** after running the docker compose file.
+
+---
+
+## Preview
+
+![frontend-preview.png](frontend-preview.png)
 
 ---
 
 ## Architecture
 
-Le projet EchoPulse est basé sur une **architecture microservices hexagonale** orientée événement, conçue pour démontrer la conception d’un système **temps réel distribué** avec **Kafka** et **WebSocket**.
-Le front consomme des APIs REST ou se connecte aux WebSocket.
-
----
-
-### Vue d’ensemble
-
-Chaque microservice est indépendant, isolé par sa propre base de données et communique via des **messages Kafka** pour garantir le découplage.  
+EchoPulse is built on an **event-driven hexagonal microservices architecture**, designed to demonstrate the implementation of a **real-time distributed system** using **Kafka**.  
+The frontend consumes REST APIs and connects via WebSocket.
 
 ---
 
@@ -50,76 +146,67 @@ Chaque microservice est indépendant, isolé par sa propre base de données et c
 
 #### 1. Server Service
 
-- Création et gestion de serveurs, channels, membres
-- Publication d’événements Kafka
-- Persistance : PostgreSQL
-- Communication : REST + Kafka (producer)
+- Creation and management of servers, channels, and memberships
+- Kafka event publishing
+- Persistence: PostgreSQL
+- Communication: REST + Kafka (producer)
 
 #### 2. Chat Service
 
-- Consommation des événements Kafka (channels, messages, users)
-- Diffusion via WebSocket STOMP
-- Persistance volatile : Redis
-- Communication : WebSocket + REST (récupération des messages)
+- Kafka event consumption (channels, messages, users)
+- WebSocket STOMP broadcasting
+- Volatile message storage in Redis
+- Communication: WebSocket + REST (message retrieval)
 
 ---
 
-### Authentification
+### Authentication
 
-- Fournie par Keycloak (OIDC)
-- JWT décodés pour chaque appel (REST et WebSocket)
-- Authentification intégrée dans le handshake WebSocket et interceptors STOMP
+- Provided by Keycloak (OIDC)
+- JWT decoded and validated for every request (REST and WebSocket)
+- WebSocket authentication integrated in the handshake and STOMP interceptors
 
 ---
 
 ### Hexagonal Design
 
-- `core/` : logique métier pure, sans dépendance
-- `port in` : interfaces de cas d’usage (commandes entrantes)
-- `port out` : interfaces des dépendances externes (Kafka, Redis, WebSocket)
-- `adapters/` : implémentations concrètes (Kafka producer, WebSocket handler, etc.)
+- `core/`: pure business logic, framework-independent
+- `port in`: interfaces for use cases (input commands)
+- `port out`: interfaces for external dependencies (Kafka, Redis, WebSocket)
+- `adapters/`: concrete implementations (Kafka producer, WebSocket handler, etc.)
 
 ---
 
-### Événements Kafka
+### Kafka Events
 
-| Événement               | Emetteur | Récepteur |
-|------------------------|----------|-----------|
-| channels.create        | server   | chat      |
-| channels.delete        | server   | chat      |
-| user.join-server       | server   | chat      |
-| user.leave-server      | server   | chat      |
-| channels.send-message  | chat     | chat      |
-
----
-
-## Stack technique
-
-| Domaine         | Outils                  |
-|-----------------|-------------------------|
-| Langage         | Java 17                 |
-| Framework       | Spring Boot 3           |
-| Messaging       | Apache Kafka            |
-| DB              | PostgreSQL (server), Redis (chat) |
-| Auth            | Keycloak + Spring OAuth2|
-| WebSocket       | STOMP (Spring Messaging)|
-| Conteneurs      | Docker + Docker Compose |
-| Architecture    | Hexagonale modulaire    |
+| Event                  | Sender  | Receiver |
+|------------------------|---------|----------|
+| channels.create        | server  | chat     |
+| channels.delete        | server  | chat     |
+| user.join-server       | server  | chat     |
+| user.leave-server      | server  | chat     |
+| channels.send-message  | chat    | chat     |
 
 ---
 
-## Limites et points d’amélioration
+## Technical Stack
 
-### Inexistant
+| Domain         | Tools                        |
+|----------------|------------------------------|
+| Language       | Java 17                      |
+| Framework      | Spring Boot 3                |
+| Messaging      | Apache Kafka                 |
+| Databases      | PostgreSQL (server), Redis (chat) |
+| Authentication | Keycloak + Spring Security OAuth2 |
+| WebSocket      | STOMP via Spring Messaging   |
+| Containers     | Docker + Docker Compose      |
+| Architecture   | Modular hexagonal architecture |
 
-- Tests sur les microservices
-- Monitoring, logs, traçabilité
-- Persistence durable des messages
-- Contrats OpenAPI / Swagger
-- Packaging
+---
 
-### Imparfait
+## Limitations and Areas for Improvement
 
-- Environnements et secrets codés en durs
-- Front-end hors conteneur
-- Redis sans TTL
+- No Automated tests across microservices
+- No Monitoring, structured logging, distributed tracing
+- Durable message persistence not implemented
+- No swagger

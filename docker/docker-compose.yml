@@ -4,8 +4,6 @@ services:
     image: confluentinc/cp-zookeeper:7.4.0
     container_name: zookeeper
     restart: always
-    networks:
-      - kafka-network
     ports:
       - "2181:2181"
     environment:
@@ -20,11 +18,9 @@ services:
     image: confluentinc/cp-kafka:7.4.0
     container_name: kafka
     restart: always
-    networks:
-      - kafka-network
     ports:
-      - "9092:9092"    # Pour ton PC
-      - "29092:29092"  # Pour tes futurs services Docker
+      - "9092:9092"
+      - "29092:29092"
     depends_on:
       - zookeeper
     environment:
@@ -40,8 +36,6 @@ services:
     image: obsidiandynamics/kafdrop:latest
     container_name: kafdrop
     restart: always
-    networks:
-      - kafka-network
     ports:
       - "9000:9000"
     depends_on:
@@ -52,23 +46,18 @@ services:
   keycloak-service:
     container_name: keycloak-service
     image: keycloak/keycloak:26.1
-    command: start-dev --verbose
+    command: start-dev --verbose --http-port=18080
     restart: always
-    networks:
-      - keycloak-service-network
-      - server-service-network
-      - chat-service-network
     ports:
-      - "18080:8080"
+      - "18080:18080"
     environment:
       KC_HEALTH_ENABLED: true
       KC_METRICS_ENABLED: true
       KC_HTTP_ENABLED: true
+      KC_HOSTNAME_STRICT: false
       KC_HOSTNAME_STRICT_HTTPS: false
-      KEYCLOAK_SSL_REQUIRED: none
       KC_HOSTNAME_STRICT_BACKCHANNEL: false
-      KC_HOSTNAME: localhost
-      KC_HOSTNAME_PORT: 8080
+      KEYCLOAK_SSL_REQUIRED: none
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: admin
       KEYCLOAK_USER: user
@@ -88,8 +77,6 @@ services:
     container_name: keycloak-service-db
     image: postgres:17.4
     restart: always
-    networks:
-      - keycloak-service-network
     ports:
       - "5433:5432"
     healthcheck:
@@ -109,8 +96,6 @@ services:
     container_name: server-service-db
     image: postgres:17.4
     restart: always
-    networks:
-      - server-service-network
     ports:
       - "5432:5432"
     healthcheck:
@@ -131,15 +116,7 @@ services:
     image: redis:7.4.2
     command: redis-server --save 20 1 --loglevel warning --requirepass admin
     restart: always
-    networks:
-      - chat-service-network
     ports:
       - "6379:6379"
     volumes:
       - ./data/chat-service/redis-data:/data
-
-networks:
-  keycloak-service-network: {}
-  server-service-network: {}
-  chat-service-network: {}
-  kafka-network: {}

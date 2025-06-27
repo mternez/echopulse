@@ -2,7 +2,7 @@
   @if(loading()) {
     @for (server of [1,2,3]; track server) {
       <div
-        class="flex flex-col w-full items-center hover:bg-gray-700 rounded-lg cursor-pointer transition-colors duration-100"
+        class="flex flex-col w-full items-center hover:bg-gray-950 rounded-lg cursor-pointer transition-colors duration-100"
       >
         <p-skeleton shape="square" size="2.5rem"/>
         <p-skeleton width="2.5rem" class="rounded-lg" styleClass="rounded-lg mb-2" />
@@ -11,12 +11,12 @@
   } @else {
     @for (server of servers(); track server.id) {
       <div
-        class="flex w-full items-center pl-6 gap-6 hover:bg-gray-700 rounded-lg cursor-pointer transition-colors duration-100"
+        class="flex w-full items-center pl-6 gap-6 hover:bg-gray-950 rounded-lg cursor-pointer transition-colors duration-100"
         (click)="onClick.emit(server)"
       >
         <p-avatar
           [label]="server.name.substring(0, 2) | uppercase"
-          styleClass="bg-gray-700 text-gray-300 border-none"
+          styleClass="bg-gray-950 text-gray-300 border-none"
           size="large"
           shape="square"
         />

@@ -2,7 +2,7 @@
   <div class="flex items-center justify-between px-3 py-2 bg-gray-500 rounded-md text-white w-full">
     <!-- Avatar + Info -->
     <div class="flex items-center">
-      <p-skeleton shape="circle" size="2rem" styleClass="mr-3 bg-gray-700 text-gray-300" />
+      <p-skeleton shape="circle" size="2rem" styleClass="mr-3 bg-gray-950 text-gray-300" />
       <p-skeleton width="10rem" styleClass="mb-2" />
     </div>
   </div>
@@ -12,23 +12,13 @@
     <div class="flex items-center">
       <p-avatar
         [label]="avatarLabel() | uppercase"
-        styleClass="mr-3 bg-gray-700 text-gray-300 border-none"
+        styleClass="mr-3 bg-gray-950 text-gray-300 border-none"
         size="xlarge"
         shape="circle"
       ></p-avatar>
       <div class="flex flex-col">
         <span class="text-sm font-medium leading-none">{{ displayName() }}</span>
       </div>
-    </div>
-
-    <!-- Actions -->
-    <div class="flex items-center space-x-2">
-      <button
-        pButton
-        type="button"
-        icon="pi pi-cog"
-        class="p-button-rounded p-button-sm p-button-text p-1 rounded-lg text-gray-300 hover:bg-gray-700"
-      ></button>
     </div>
   </div>
 }

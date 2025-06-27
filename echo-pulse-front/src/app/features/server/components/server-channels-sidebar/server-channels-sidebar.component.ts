@@ -7,18 +7,20 @@ import {InputTextModule} from "primeng/inputtext";
 import {FormControl, ReactiveFormsModule, Validators} from "@angular/forms";
 import {GlobalStore} from "../../../../store/global.store";
 import {HasPermissionDirective} from "../../../../directives/has-permission.directive";
+import {NgClass} from "@angular/common";
 
 @Component({
   selector: 'app-server-channels-sidebar',
   standalone: true,
-    imports: [
-        SkeletonModule,
-        ButtonDirective,
-        DialogModule,
-        InputTextModule,
-        ReactiveFormsModule,
-        HasPermissionDirective
-    ],
+  imports: [
+    SkeletonModule,
+    ButtonDirective,
+    DialogModule,
+    InputTextModule,
+    ReactiveFormsModule,
+    HasPermissionDirective,
+    NgClass
+  ],
   templateUrl: './server-channels-sidebar.component.html',
   styleUrl: './server-channels-sidebar.component.css'
 })
@@ -31,6 +33,7 @@ export class ServerChannelsSidebarComponent implements OnInit {
   onOpenChannel = output<ChannelDetails>();
 
   selectedServer = this.globalStore.selectedServer;
+  selectedChannel = this.globalStore.currentChannel;
   creationDialogVisible = this.globalStore.createChannelDialogVisible;
   createChannelInProgress = this.globalStore.createChannelInProgress;
   channelNameFormControl = new FormControl<string>("", Validators.required);

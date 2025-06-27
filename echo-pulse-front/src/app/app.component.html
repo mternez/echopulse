@@ -1,13 +1,16 @@
 <p-splitter [panelSizes]="[10, 85]" [minSizes]="[10,20]" styleClass="flex h-full text-white overflow-hidden">
   <ng-template pTemplate class="overflow-hidden">
-    <app-user-sidebard class="self-stretch min-w-full overflow-hidden bg-gray-600 border-l-red-500 border-solid border-spacing-4"/>
+    <app-user-sidebard class="self-stretch min-w-full overflow-hidden bg-gray-800 border-l-red-500 border-solid border-spacing-4"/>
   </ng-template>
   <ng-template pTemplate>
     @if(selectedServer()) {
       <app-server-container class="flex grow self-stretch" />
     } @else {
-      <p class="w-full text-center bg-gray-600 h-full">Choose or create a server</p>
+      <p class="w-full text-center bg-gray-800 h-full">Choose or create a server</p>
     }
+    <div class="w-[10%] bottom-0 right-0 px-2 pb-2 mt-2 absolute">
+      <app-user-profile-card [id]="user()?.id!" [displayName]="user()?.displayName!" [username]="user()?.username!" />
+    </div>
   </ng-template>
 </p-splitter>
 
