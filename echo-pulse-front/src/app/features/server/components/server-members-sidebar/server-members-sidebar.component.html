@@ -11,11 +11,11 @@
     <div class="flex flex-col gap-2">
       @for (member of members(); track member.user.name) {
         <div
-          class="flex items-center gap-3 p-2 rounded-md bg-gray-950 hover:bg-gray-800 cursor-pointer transition-colors duration-100"
+          class="flex items-center gap-3 p-2 rounded-md bg-gray-700 hover:bg-gray-400 cursor-pointer transition-colors duration-100"
         >
           <p-avatar
             [label]="member.user.displayName.substring(0, 2) | uppercase"
-            styleClass="bg-gray-950 text-gray-300 border-none"
+            styleClass="bg-gray-700 text-gray-300 border-none"
             size="large"
             shape="square"
           />

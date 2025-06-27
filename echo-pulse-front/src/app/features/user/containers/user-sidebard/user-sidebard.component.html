@@ -3,7 +3,7 @@
     <div class="flex justify-around items-center px-6 pb-3 border-b border-solid">
       <button
         type="button"
-        class="w-12 h-12 rounded-full bg-gray-950 text-white text-2xl font-bold
+        class="w-12 h-12 rounded-full bg-gray-700 text-white text-2xl font-bold
            hover:bg-gray-500 transition-colors duration-150 flex items-center justify-center"
         (click)="setServerCreationDialogStatus(true)"
       >
@@ -11,7 +11,7 @@
       </button>
       <button
         type="button"
-        class="w-12 h-12 rounded-full bg-gray-950 text-white text-xl
+        class="w-12 h-12 rounded-full bg-gray-700 text-white text-xl
            hover:bg-indigo-500 transition-colors duration-150 flex items-center justify-center"
         aria-label="Join server"
         (click)="setJoinServerDialogStatus(true)"
@@ -33,7 +33,7 @@
   [focusTrap]="true"
   [draggable]="false"
   [focusOnShow]="true"
-  styleClass="bg-gray-900 text-white rounded-lg p-6 w-full max-w-md shadow-xl"
+  styleClass="bg-gray-400 text-white rounded-lg p-6 w-full max-w-md shadow-xl"
 >
   <div class="mb-4">
     <label for="serverName" class="block text-sm font-medium text-gray-300 mb-1">Server Name</label>
@@ -42,7 +42,7 @@
       id="serverName"
       type="text"
       pInputText
-      class="w-full px-3 py-2 bg-gray-950 text-white rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500"
+      class="w-full px-3 py-2 bg-gray-700 text-white rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500"
       placeholder="Server name"
     />
     <p class="text-red-700">Required</p>
@@ -52,7 +52,7 @@
     <button
       type="button"
       pButton
-      class="px-4 py-2 text-sm rounded-md bg-gray-800 hover:bg-gray-500 transition-colors"
+      class="px-4 py-2 text-sm rounded-md bg-gray-400 hover:bg-gray-500 transition-colors"
       (click)="setServerCreationDialogStatus(false)"
       [loading]="createServerInProgress()"
       [disabled]="createServerInProgress()"
@@ -79,7 +79,7 @@
   [focusTrap]="true"
   [draggable]="false"
   [focusOnShow]="true"
-  styleClass="bg-gray-900 text-white rounded-lg p-6 w-full max-w-md shadow-xl"
+  styleClass="bg-gray-400 text-white rounded-lg p-6 w-full max-w-md shadow-xl"
 >
   <div class="mb-4">
     <label for="serverId" class="block text-sm font-medium text-gray-300 mb-1">Server id</label>
@@ -88,7 +88,7 @@
       id="serverId"
       type="text"
       pInputText
-      class="w-full px-3 py-2 bg-gray-950 text-white rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500"
+      class="w-full px-3 py-2 bg-gray-700 text-white rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500"
       placeholder="id"
     />
     <p class="text-red-700">Required</p>
@@ -98,7 +98,7 @@
     <button
       type="button"
       pButton
-      class="px-4 py-2 text-sm rounded-md bg-gray-800 hover:bg-gray-500 transition-colors"
+      class="px-4 py-2 text-sm rounded-md bg-gray-400 hover:bg-gray-500 transition-colors"
       (click)="setJoinServerDialogStatus(false)"
       [loading]="joinServerInProgress()"
       [disabled]="joinServerInProgress()"

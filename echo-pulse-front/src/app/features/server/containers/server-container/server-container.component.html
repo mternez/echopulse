@@ -1,10 +1,10 @@
-<div class="flex flex-col h-full min-w-64 self-stretch bg-gray-950">
+<div class="flex flex-col h-full min-w-64 self-stretch bg-gray-700">
   @if(selectedServerDetailsLoading()) {
-    <div class="flex items-center justify-between px-3 py-2 bg-gray-800 text-white border-b">
+    <div class="flex items-center justify-between px-3 py-2 bg-gray-400 text-white border-b">
       <p-skeleton width="12rem" styleClass="rounded"/>
     </div>
   } @else {
-    <div class="flex items-center justify-between px-3 py-2 bg-gray-800 text-white border-b">
+    <div class="flex items-center justify-between px-3 py-2 bg-gray-400 text-white border-b">
       <h2 class="text-sm font-semibold truncate">
         {{ selectedServer()?.name! }}
       </h2>
@@ -49,4 +49,4 @@
   <div class="flex flex-col w-full bg-gray-500 text-center">Select a channel</div>
 }
 <!-- Sidebar droite : Liste des membres -->
-<app-server-members-sidebar [loading]="selectedServerMembersLoading()" [members]="selectedServerMembers()!" class="min-w-52 bg-gray-950"/>
+<app-server-members-sidebar [loading]="selectedServerMembersLoading()" [members]="selectedServerMembers()!" class="min-w-52 bg-gray-700"/>

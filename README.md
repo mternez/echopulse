@@ -131,7 +131,7 @@ Kafdrop is also provided in the docker compose and available at **http://localho
 
 ## Preview
 
-![frontend-preview.png](frontend-preview.png)
+![frontend-preview.png](front-end-preview.png)
 
 ---
 
